@@ -1,0 +1,7 @@
+FROM tensorflow/tensorflow:latest-gpu-jupyter
+MAINTAINER Guilherme (guilherme.vieira.leite@gmail.com)
+
+RUN apt-get update && apt-get install -y -qq python3-opencv
+RUN pip3 install opencv-python
+RUN pip3 install scikit-image
+RUN mkdir -p /.config/matplotlib
