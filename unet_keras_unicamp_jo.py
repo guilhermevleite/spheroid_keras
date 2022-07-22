@@ -216,9 +216,9 @@ def iou(y_true, y_pred, smooth=1.):
 def showHistory(history):
     # list all data in history
     print(history.history.keys())
-    fig = plt.figure(figsize=(10,6))
 
     # summarize history for accuracy
+    fig = plt.figure(figsize=(10,6))
     plt.plot(history.history['dice'])
     plt.plot(history.history['val_dice'])
     plt.title('Model accuracy',fontsize=20)
@@ -229,6 +229,18 @@ def showHistory(history):
     plt.tick_params(axis='both', which='minor', labelsize=18)
     plt.ylim([0.0, 1.0])
     plt.show()
+    plt.savefig('./dice.png')
+
+    # Plotting learning rate
+    fig = plt.figure(figsize=(10,6))
+    plt.plot(history.history['lr'])
+    plt.title('Learning Rate',fontsize=20)
+    plt.ylabel('LR',fontsize=20)
+    plt.xlabel('Epoch',fontsize=20)
+    plt.tick_params(axis='both', which='major', labelsize=18)
+    plt.tick_params(axis='both', which='minor', labelsize=18)
+    plt.show()
+    plt.savefig('./lr.png')
 
     # summarize history for loss
     fig = plt.figure(figsize=(10,6))
@@ -242,6 +254,7 @@ def showHistory(history):
     plt.tick_params(axis='both', which='minor', labelsize=18)
     plt.ylim([0.0, 1.0])
     plt.show()
+    plt.savefig('./loss.png')
     
 
 def sanity_check_generator(gen):
@@ -300,6 +313,8 @@ def render_preds(val_gen, preds, worst_list=None):
                         ax_arr[graph_row,0].set_axis_off()
                         ax_arr[graph_row,1].set_axis_off()
                         ax_arr[graph_row,2].set_axis_off()
+
+                        ax_arr[graph_row,2].set_title(entry[1])
                         
                         graph_row += 1
                         
@@ -323,6 +338,7 @@ def render_preds(val_gen, preds, worst_list=None):
                     break
                 
         plt.show()
+        plt.savefig('./preds.png')
 
         break
     
@@ -360,9 +376,10 @@ def get_timestamp():
 # In[9]:
 
 
-sanity_files = np.load('/home/leite/Workspace/db/segmentation/mockup/names_train.npy')
-sanity_generator = DataGenerator(2, (224,224,1), sanity_files)
-sanity_check_generator(sanity_generator)
+# sanity_files = np.load('/home/leite/Workspace/db/segmentation/mockup/names_train.npy')
+# sanity_files = np.load('/workspace/db/segmentation/mockup/names_train.npy')
+# sanity_generator = DataGenerator(2, (224,224,1), sanity_files)
+# sanity_check_generator(sanity_generator)
 
 
 # # Model
@@ -743,8 +760,10 @@ def MultiResUnet(height, width, n_channels):
 
 MODEL_NAME = 'unet' # [unet, unetpp, MultiResUnet]
 DB_NAME = 'mini-carvana'
-ROOT_DIR = '/home/leite/Workspace/db/segmentation/'
-SAVE_ROOT_DIR = '/home/leite/Workspace/runs/'
+# ROOT_DIR = '/home/leite/Workspace/db/segmentation/'
+ROOT_DIR = '/workspace/db/segmentation/'
+# SAVE_ROOT_DIR = '/home/leite/Workspace/runs/'
+SAVE_ROOT_DIR = '/workspace/runs/'
 
 BATCH_SIZE = 64
 VAL_BATCH = 16
@@ -761,17 +780,17 @@ print(VAL_PATH)
 # In[15]:
 
 
-# train_file_names = os.listdir(TRAIN_PATH)
-# val_file_names = os.listdir(VAL_PATH)
+train_file_names = os.listdir(TRAIN_PATH)
+val_file_names = os.listdir(VAL_PATH)
 
-# train_file_names.sort()
-# val_file_names.sort()
+train_file_names.sort()
+val_file_names.sort()
 
-# train_file_names = [ os.path.join(TRAIN_PATH, f_name) for f_name in train_file_names ]
-# val_file_names = [ os.path.join(VAL_PATH, f_name) for f_name in val_file_names ]
+train_file_names = [ os.path.join(TRAIN_PATH, f_name) for f_name in train_file_names ]
+val_file_names = [ os.path.join(VAL_PATH, f_name) for f_name in val_file_names ]
 
-# np.save(ROOT_DIR + DB_NAME + '/names_train.npy', train_file_names)
-# np.save(ROOT_DIR + DB_NAME + '/names_val.npy', val_file_names)
+np.save(ROOT_DIR + DB_NAME + '/names_train.npy', train_file_names)
+np.save(ROOT_DIR + DB_NAME + '/names_val.npy', val_file_names)
 
 
 # In[16]:
@@ -928,7 +947,7 @@ if not os.path.isdir(model_folder):
     os.makedirs(graphs_folder)
 
 print(os.path.join(model_folder, model_file_name + '.hdf5'))
-# model.save(os.path.join(model_folder, model_file_name + '.hdf5'))
+model.save(os.path.join(model_folder, model_file_name + '.hdf5'))
 
 
 # In[23]:
