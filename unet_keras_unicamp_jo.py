@@ -758,16 +758,16 @@ def MultiResUnet(height, width, n_channels):
 # In[14]:
 
 
-MODEL_NAME = 'unet' # [unet, unetpp, MultiResUnet]
+MODEL_NAME = 'MultiResUnet' # [unet, unetpp, MultiResUnet]
 DB_NAME = 'mini-carvana'
 # ROOT_DIR = '/home/leite/Workspace/db/segmentation/'
 ROOT_DIR = '/workspace/db/segmentation/'
 # SAVE_ROOT_DIR = '/home/leite/Workspace/runs/'
 SAVE_ROOT_DIR = '/workspace/runs/'
 
-BATCH_SIZE = 64
+BATCH_SIZE = 16
 VAL_BATCH = 16
-EPOCHS = 1000
+EPOCHS = 100
 LEARNING_RATE = 1e-3
 
 TRAIN_PATH = os.path.join(ROOT_DIR, DB_NAME, 'train/images/')
