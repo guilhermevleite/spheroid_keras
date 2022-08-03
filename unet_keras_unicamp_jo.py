@@ -1,71 +1,26 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# # Requirements
-
-# In[1]:
-
-
 # from google.colab import drive
+import os
+import random
+from datetime import datetime
 from keras.utils.data_utils import Sequence
-from keras.layers import Input, Conv2D, BatchNormalization, MaxPooling2D, UpSampling2D
+from keras.layers import Input, Conv2D, BatchNormalization, MaxPooling2D, UpSampling2D, Activation, Dropout
 from keras.callbacks import EarlyStopping
 from keras.models import Sequential
 from keras import backend as K
-import skimage
 import numpy as np
-import os
 import cv2
-
-
-# In[2]:
-
-
-from numpy.random import seed
-import os
-import random
-import numpy as np
-import skimage
 import matplotlib.pyplot as plt
 from keras.models import *
 from keras.layers import *
 from keras.optimizers import *
 from keras import callbacks
-from keras.callbacks import ModelCheckpoint, LearningRateScheduler, ReduceLROnPlateau, TensorBoard, EarlyStopping
-from keras.layers import Input, Activation, Conv2D, MaxPooling2D, UpSampling2D, Dense, Cropping2D, Dropout, Concatenate, BatchNormalization
-from keras import backend as keras
-from keras import losses, metrics
-import numpy as np
-import matplotlib.pyplot as plt
-from keras.models import Sequential
+from keras.callbacks import ModelCheckpoint, LearningRateScheduler, ReduceLROnPlateau, TensorBoard
+from keras import losses
+
 from tensorflow.keras.backend import flatten
-from PIL import Image
-from datetime import datetime
-
-
-# In[3]:
-
-
-# drive.mount('/content/drive')
-
-
-# In[4]:
-
-
-# %cd /content/drive/MyDrive/db/segmentation
-# !unzip sartorius.zip
-
-
-# In[5]:
 
 
 print("Version: ", tf.version.VERSION)
-
-
-# # Dataset
-
-# In[6]:
-
 
 class DataGenerator(Sequence):
     'Generates data for Keras'
