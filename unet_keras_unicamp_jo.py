@@ -713,10 +713,10 @@ def MultiResUnet(height, width, n_channels):
 # In[14]:
 
 
-MODEL_NAME = 'MultiResUnet' # [unet, unetpp, MultiResUnet]
-DB_NAME = 'mini-carvana'
+MODEL_NAME = 'unet' # [unet, unetpp, MultiResUnet]
+DB_NAME = 'isic_2018'
 # ROOT_DIR = '/home/leite/Workspace/db/segmentation/'
-ROOT_DIR = '/workspace/db/segmentation/'
+ROOT_DIR = '/workspace/spheroid_keras/unext/inputs/'
 # SAVE_ROOT_DIR = '/home/leite/Workspace/runs/'
 SAVE_ROOT_DIR = '/workspace/runs/'
 

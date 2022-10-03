@@ -1,7 +1,13 @@
-FROM tensorflow/tensorflow:latest-gpu-jupyter
+FROM pytorch/pytorch:1.12.1-cuda11.3-cudnn8-devel
 MAINTAINER Guilherme (guilherme.vieira.leite@gmail.com)
 
-RUN apt-get update && apt-get install -y -qq python3-opencv
 RUN pip3 install opencv-python
 RUN pip3 install scikit-image
+RUN pip3 install scikit-learn
+RUN pip3 install pandas
+RUN pip3 install albumentations
+RUN pip3 install matplotlib
+RUN pip3 install timm
+RUN pip3 install mmcv
+
 RUN mkdir -p /.config/matplotlib

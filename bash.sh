@@ -1,1 +1,1 @@
-docker run -it --name=bash --runtime=nvidia --rm -v /home/leite/Workspace:/workspace -w /workspace -u $(id -u):$(id -g) phd bash
+docker run -it --name=bash --gpus all --rm -v /home/leite/Workspace:/workspace -w /workspace -u $(id -u):$(id -g) phd_torch bash
