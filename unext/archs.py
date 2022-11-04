@@ -472,7 +472,6 @@ class UNext_S(nn.Module):
         return self.final(out)
 
 
-<<<<<<< HEAD
 class DoubleConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         # TODO Figure out what is this doing here. I need its a reference to nn.Module, since we are inheriting that class.
@@ -568,6 +567,3 @@ class UNet(nn.Module):
             x = self.ups[idx+1](concat_skip)
         
         return self.final_conv(x)
-=======
->>>>>>> 1b5d1ced338a2433f4fa90cbd1706c0845d2979c
-#EOF

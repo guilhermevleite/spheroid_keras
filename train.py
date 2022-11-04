@@ -15,16 +15,19 @@ from sklearn.model_selection import train_test_split
 from torch.optim import lr_scheduler
 from tqdm import tqdm
 from albumentations import RandomRotate90,Resize
-import unext.archs as archs
+# import unext.archs as archs
 import unext.losses as losses
 from unext.dataset import Dataset
 from unext.metrics import iou_score
 from unext.utils import AverageMeter, str2bool
-from unext.archs import UNext
-from unext.archs import Unet
+# from unext.archs import UNext
+# from unext.archs import Unet
+from models.unext import UNext
+from models.unet import UNet
 
 
-ARCH_NAMES = archs.__all__
+# ARCH_NAMES = archs.__all__
+ARCH_NAMES = ['UNext', 'UNet']
 LOSS_NAMES = losses.__all__
 LOSS_NAMES.append('BCEWithLogitsLoss')
 
