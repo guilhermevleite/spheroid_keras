@@ -21,7 +21,7 @@ from unext.dataset import Dataset
 from unext.metrics import iou_score
 from unext.utils import AverageMeter, str2bool
 from unext.archs import UNext
-from unext.archs import Unet
+from unext.archs import UNet
 
 
 ARCH_NAMES = archs.__all__

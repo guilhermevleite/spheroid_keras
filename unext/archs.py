@@ -11,7 +11,7 @@ import torchvision.transforms.functional as TF
 import torch.nn.functional as F
 import os
 import matplotlib.pyplot as plt
-from utils import *
+from unext.utils import *
 __all__ = ['UNext', 'UNet']
 
 import timm
@@ -472,7 +472,6 @@ class UNext_S(nn.Module):
         return self.final(out)
 
 
-<<<<<<< HEAD
 class DoubleConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         # TODO Figure out what is this doing here. I need its a reference to nn.Module, since we are inheriting that class.
@@ -497,16 +496,13 @@ class DoubleConv(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(
-        self,
-        in_channels=3,
-        # In the paper, the out channel was 2, we are going to use 1, since all we want is a binary segmentation.
-        # TODO: Check whether out channel > 1 is necessary only when doing semantic segmentation.
-        out_channels=1,
-        # This as the features on every double convolution
-        features=[64, 128, 256, 512]
-    ):
-        super(UNet, self).__init__()
+    def __init__(self,  num_classes, input_channels=3, deep_supervision=False,img_size=224, patch_size=16, in_chans=3,  embed_dims=[64, 128, 256, 512], num_heads=[1, 2, 4, 8], mlp_ratios=[4, 4, 4, 4], qkv_bias=False, qk_scale=None, drop_rate=0., attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm, depths=[1, 1, 1], sr_ratios=[8, 4, 2, 1], **kwargs):
+
+        super().__init__()
+        in_channels=input_channels
+        out_channels=1
+        features=embed_dims
+
         # We can not use self.downs = [], because it stores the convs and we want do do eval on these.
         self.ups = nn.ModuleList()
         self.downs = nn.ModuleList()
@@ -566,8 +562,5 @@ class UNet(nn.Module):
             concat_skip = torch.cat((skip_connection, x), dim=1)
             # This will do the DoubleConv after we did the UP and concatenated the skip connection
             x = self.ups[idx+1](concat_skip)
-        
+
         return self.final_conv(x)
-=======
->>>>>>> 1b5d1ced338a2433f4fa90cbd1706c0845d2979c
-#EOF
