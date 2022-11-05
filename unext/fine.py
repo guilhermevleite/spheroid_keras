@@ -194,11 +194,14 @@ def validate(config, val_loader, model, criterion):
 
 
 def main():
-    # config = vars(parse_args())
+    config = vars(parse_args())
     args = parse_args()
 
     with open('models/%s/config.yml' % args.name, 'r') as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
+        tmp = yaml.load(f, Loader=yaml.FullLoader)
+        config['name'] = tmp['name']
+
+    print(config['tune'])
 
     if config['name'] is None:
         if config['deep_supervision']:
@@ -206,14 +209,14 @@ def main():
         else:
             config['name'] = '%s_%s_woDS' % (config['dataset'], config['arch'])
     
-    os.makedirs('models/%s' % config['name'], exist_ok=True)
+    os.makedirs('models/%s' % (config['name']+'_'+config['tune']), exist_ok=True)
 
     print('-' * 20)
     for key in config:
         print('%s: %s' % (key, config[key]))
     print('-' * 20)
 
-    with open('models/%s/config.yml' % config['name'], 'w') as f:
+    with open('models/%s/config.yml' % (config['name']+'_'+config['tune']), 'w') as f:
         yaml.dump(config, f)
 
     # define loss function (criterion)
@@ -256,7 +259,7 @@ def main():
 
     # Data loading code
     img_ids = glob(os.path.join('/datasets/segmentation', config['tune'], 'images', '*' + config['img_ext']))
-    print(len(img_ids))
+    print('Dataset {} size {} format {} {}'.format(config['tune'], len(img_ids), config['img_ext'], config['mask_ext']))
     img_ids = [os.path.splitext(os.path.basename(p))[0] for p in img_ids]
 
     train_img_ids, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
@@ -342,13 +345,13 @@ def main():
         log['val_dice'].append(val_log['dice'])
 
         pd.DataFrame(log).to_csv('models/%s/log.csv' %
-                                 config['name']+'_'+config['tune'], index=False)
+                                 (config['name']+'_'+config['tune']), index=False)
 
         trigger += 1
 
         if val_log['iou'] > best_iou:
             torch.save(model.state_dict(), 'models/%s/model.pth' %
-                       config['name']+'_'+config['tune'])
+                       (config['name']+'_'+config['tune']))
             best_iou = val_log['iou']
             print("=> saved best model")
             trigger = 0
