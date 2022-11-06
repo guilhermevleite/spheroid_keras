@@ -13,6 +13,6 @@ idx=0
 #   python3 val.py --name isic_${idx}
 #done;
 
-# python3 train.py --dataset isic_2018 --arch UNext --name ${idx}_isic --img_ext .jpg --mask_ext .png --lr 0.0001 --epochs 400 --input_w 256 --input_h 256 --b 6
+python3 train.py --dataset isic_2018 --arch UNext --name ${idx}_isic --img_ext .jpg --mask_ext .png --lr 0.0001 --epochs 400 --input_w 256 --input_h 256 --b 6 --early_stopping 10
 
 python3 fine.py --dataset busi --arch UNext --name ${idx}_isic --tune busi --img_ext .png --mask_ext .png --lr 0.0001 --epochs 400 --input_w 256 --input_h 256 --b 6 --early_stopping 10

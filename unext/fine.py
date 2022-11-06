@@ -266,7 +266,7 @@ def main():
 
     train_transform = Compose([
         RandomRotate90(),
-        transforms.Flip(),
+        #transforms.Flip(),
         Resize(config['input_h'], config['input_w']),
         transforms.Normalize(),
     ])
