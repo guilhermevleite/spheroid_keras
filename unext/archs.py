@@ -497,16 +497,20 @@ class DoubleConv(nn.Module):
 
 
 class Unet(nn.Module):
-    def __init__(
-        self,
-        input_channels=3,
-        img_size=224,
-        # In the paper, the out channel was 2, we are going to use 1, since all we want is a binary segmentation.
-        # TODO: Check whether out channel > 1 is necessary only when doing semantic segmentation.
-        out_channels=1,
-        # This as the features on every double convolution
-        features=[64, 128, 256, 512]
-    ):
+    def __init__(self,  num_classes, input_channels=3, deep_supervision=False,img_size=224, patch_size=16, in_chans=3,  embed_dims=[ 128, 160, 256],
+                 num_heads=[1, 2, 4, 8], mlp_ratios=[4, 4, 4, 4], qkv_bias=False, qk_scale=None, drop_rate=0.,
+                 attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
+                 depths=[1, 1, 1], sr_ratios=[8, 4, 2, 1], features=[64, 128, 256, 512], out_channels=1, **kwargs):
+    # def __init__(
+        # self,
+        # input_channels=3,
+        # img_size=224,
+        # # In the paper, the out channel was 2, we are going to use 1, since all we want is a binary segmentation.
+        # # TODO: Check whether out channel > 1 is necessary only when doing semantic segmentation.
+        # out_channels=1,
+        # # This as the features on every double convolution
+        # features=[64, 128, 256, 512]
+    # ):
         super(Unet, self).__init__()
         # We can not use self.downs = [], because it stores the convs and we want do do eval on these.
         self.ups = nn.ModuleList()
