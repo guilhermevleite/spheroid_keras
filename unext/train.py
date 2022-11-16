@@ -28,6 +28,9 @@ LOSS_NAMES = losses.__all__
 LOSS_NAMES.append('BCEWithLogitsLoss')
 
 
+DATASETS_PATH = '/workspace/deep_learning/datasets/segmentation'
+MODELS_PATH = '/workspace/deep_learning/experiments/models'
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -199,14 +202,14 @@ def main():
         else:
             config['name'] = '%s_%s_woDS' % (config['dataset'], config['arch'])
     
-    os.makedirs('models/%s' % config['name'], exist_ok=True)
+    os.makedirs(MODELS_PATH+'/%s' % config['name'], exist_ok=True)
 
     print('-' * 20)
     for key in config:
         print('%s: %s' % (key, config[key]))
     print('-' * 20)
 
-    with open('models/%s/config.yml' % config['name'], 'w') as f:
+    with open(MODELS_PATH+'/%s/config.yml' % config['name'], 'w') as f:
         yaml.dump(config, f)
 
     # define loss function (criterion)
@@ -248,7 +251,7 @@ def main():
         raise NotImplementedError
 
     # Data loading code
-    img_ids = glob(os.path.join('inputs', config['dataset'], 'images', '*' + config['img_ext']))
+    img_ids = glob(os.path.join(DATASETS_PATH, config['dataset'], 'images', '*' + config['img_ext']))
     print(len(img_ids))
     img_ids = [os.path.splitext(os.path.basename(p))[0] for p in img_ids]
 
@@ -268,16 +271,16 @@ def main():
 
     train_dataset = Dataset(
         img_ids=train_img_ids,
-        img_dir=os.path.join('inputs', config['dataset'], 'images'),
-        mask_dir=os.path.join('inputs', config['dataset'], 'masks'),
+        img_dir=os.path.join(DATASETS_PATH, config['dataset'], 'images'),
+        mask_dir=os.path.join(DATASETS_PATH, config['dataset'], 'masks'),
         img_ext=config['img_ext'],
         mask_ext=config['mask_ext'],
         num_classes=config['num_classes'],
         transform=train_transform)
     val_dataset = Dataset(
         img_ids=val_img_ids,
-        img_dir=os.path.join('inputs', config['dataset'], 'images'),
-        mask_dir=os.path.join('inputs', config['dataset'], 'masks'),
+        img_dir=os.path.join(DATASETS_PATH, config['dataset'], 'images'),
+        mask_dir=os.path.join(DATASETS_PATH, config['dataset'], 'masks'),
         img_ext=config['img_ext'],
         mask_ext=config['mask_ext'],
         num_classes=config['num_classes'],
@@ -332,13 +335,13 @@ def main():
         log['val_iou'].append(val_log['iou'])
         log['val_dice'].append(val_log['dice'])
 
-        pd.DataFrame(log).to_csv('models/%s/log.csv' %
+        pd.DataFrame(log).to_csv(MODELS_PATH+'/%s/log.csv' %
                                  config['name'], index=False)
 
         trigger += 1
 
         if val_log['iou'] > best_iou:
-            torch.save(model.state_dict(), 'models/%s/model.pth' %
+            torch.save(model.state_dict(), MODELS_PATH+'/%s/model.pth' %
                        config['name'])
             best_iou = val_log['iou']
             print("=> saved best model")
