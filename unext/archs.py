@@ -25,7 +25,7 @@ from einops import repeat, rearrange
 import numpy as np
 
 
-__all__ = ['UNext', 'Unet']
+__all__ = ['UNext', 'Unet', 'Unetr']
 
 
 def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
@@ -808,12 +808,35 @@ class Embeddings3D(nn.Module):
 # based on https://arxiv.org/abs/2103.10504
 # implementation is influenced by practical details missing in the paper that can be found
 # https://github.com/Project-MONAI/MONAI/blob/027947bf91ff0dfac94f472ed1855cd49e3feb8d/monai/networks/nets/unetr.py
-class UNETR(nn.Module):
-    def __init__(self, img_shape=(128, 128, 128), input_dim=4, output_dim=3,
-                 embed_dim=768, patch_size=16, num_heads=12, dropout=0.0,
-                 ext_layers=[3, 6, 9, 12], norm='instance',
-                 base_filters=16,
-                 dim_linear_block=3072):
+class Unetr(nn.Module):
+    def __init__(self,
+            num_classes,
+            input_channels=3,
+            deep_supervision=False,
+            img_size=224,
+            patch_size=16,
+            in_chans=3,
+            embed_dims=[ 128, 160, 256],
+            mlp_ratios=[4, 4, 4, 4],
+            qkv_bias=False,
+            qk_scale=None,
+            drop_rate=0.,
+            attn_drop_rate=0.,
+            drop_path_rate=0.,
+            norm_layer=nn.LayerNorm,
+            depths=[1, 1, 1],
+            sr_ratios=[8, 4, 2, 1],
+            img_shape=(128, 128, 128),
+            input_dim=4,
+            output_dim=3,
+            embed_dim=768,
+            num_heads=12,
+            dropout=0.0,
+            ext_layers=[3, 6, 9, 12],
+            norm='instance',
+            base_filters=16,
+            dim_linear_block=3072,
+            **kwargs):
         """
         Args:
             img_shape: volume shape, provided as a tuple
@@ -837,6 +860,7 @@ class UNETR(nn.Module):
         self.num_heads = num_heads
         self.dropout = dropout
         self.ext_layers = ext_layers
+        img_shape=(128, 128, 128)
         self.patch_dim = [int(x / patch_size) for x in img_shape]
 
         self.norm = nn.BatchNorm3d if norm == 'batch' else nn.InstanceNorm3d
