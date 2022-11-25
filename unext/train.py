@@ -108,6 +108,7 @@ def train(config, train_loader, model, criterion, optimizer):
     avg_meters = {'loss': AverageMeter(),
                   'iou': AverageMeter()}
 
+    torch.autograd.set_detect_anomaly(True)
     model.train()
 
     pbar = tqdm(total=len(train_loader))
@@ -222,8 +223,8 @@ def main():
 
     # create model
     model = archs.__dict__[config['arch']](config['num_classes'],
-                                           config['input_channels'],
-                                           config['deep_supervision'])
+            config['input_channels'],
+            config['deep_supervision'])
 
     model = model.cuda()
 
