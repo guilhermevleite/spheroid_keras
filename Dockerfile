@@ -9,5 +9,6 @@ RUN pip3 install albumentations
 RUN pip3 install matplotlib
 RUN pip3 install timm
 RUN pip3 install mmcv
+RUN pip3 install monai=0.7.0
 
 RUN mkdir -p /.config/matplotlib
