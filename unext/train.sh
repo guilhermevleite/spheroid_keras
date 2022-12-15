@@ -25,7 +25,7 @@ idx=0
 
 #python3 train.py --dataset cpu --arch UNETR --name ${idx}_unetr_cpu_2ep --img_ext .png --mask_ext .png --lr 0.0001 --epochs 2 --input_w 256 --input_h 256 --b 6
 
-python3 train.py --dataset cpu --arch VisionTransformer --name ${idx}_unetr_cpu_2ep --img_ext .png --mask_ext .png --lr 0.0001 --epochs 2 --input_w 256 --input_h 256 --b 6
+python3 train.py --dataset cpu --arch TransUNet --name ${idx}_tunet_cpu_2ep --img_ext .png --mask_ext .png --lr 0.0001 --epochs 2 --input_w 256 --input_h 256 --b 6
 
 #python3 train.py --dataset isic_2018 --arch UNext --name ${idx}_unext_isic_200ep --img_ext .jpg --mask_ext .png --lr 0.0001 --epochs 200 --input_w 256 --input_h 256 --b 6
 
