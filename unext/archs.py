@@ -22,7 +22,7 @@ from mmcv.cnn import ConvModule
 import pdb
 
 
-__all__ = ['UNext', 'Unet', 'UNETR']
+__all__ = ['UNext', 'Unet', 'UNETR', 'TransUNet']
 
 
 def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
@@ -581,220 +581,992 @@ class Unet(nn.Module):
 
 
 
-from typing import Tuple, Union
+# from typing import Tuple, Union
 
-from monai.networks.blocks import UnetrBasicBlock, UnetrPrUpBlock, UnetrUpBlock
-from monai.networks.blocks.dynunet_block import UnetOutBlock
-from monai.networks.nets import ViT
+# from monai.networks.blocks import UnetrBasicBlock, UnetrPrUpBlock, UnetrUpBlock
+# from monai.networks.blocks.dynunet_block import UnetOutBlock
+# from monai.networks.nets import ViT
 
 
-class UNETR(nn.Module):
-    """
-    UNETR based on: "Hatamizadeh et al.,
-    UNETR: Transformers for 3D Medical Image Segmentation <https://arxiv.org/abs/2103.10504>"
-    """
+# class UNETR(nn.Module):
+    # """
+    # UNETR based on: "Hatamizadeh et al.,
+    # UNETR: Transformers for 3D Medical Image Segmentation <https://arxiv.org/abs/2103.10504>"
+    # """
+    # def __init__(
+        # self,
+        # num_classes: int,
+        # input_channels: int = 3,
+        # deep_supervision: bool = False,
+        # in_channels: int = 3,
+        # out_channels: int = 1,
+        # img_size: Tuple[int, int, int] = (96, 96, 96),
+        # feature_size: int = 16,
+        # hidden_size: int = 768,
+        # mlp_dim: int = 3072,
+        # num_heads: int = 12,
+        # pos_embed: str = "perceptron",
+        # norm_name: Union[Tuple, str] = "instance",
+        # conv_block: bool = False,
+        # res_block: bool = True,
+        # dropout_rate: float = 0.0,
+    # ) -> None:
+        # """
+        # Args:
+            # in_channels: dimension of input channels.
+            # out_channels: dimension of output channels.
+            # img_size: dimension of input image.
+            # feature_size: dimension of network feature size.
+            # hidden_size: dimension of hidden layer.
+            # mlp_dim: dimension of feedforward layer.
+            # num_heads: number of attention heads.
+            # pos_embed: position embedding layer type.
+            # norm_name: feature normalization type and arguments.
+            # conv_block: bool argument to determine if convolutional block is used.
+            # res_block: bool argument to determine if residual block is used.
+            # dropout_rate: faction of the input units to drop.
 
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-        img_size: Tuple[int, int, int],
-        feature_size: int = 16,
-        hidden_size: int = 768,
-        mlp_dim: int = 3072,
-        num_heads: int = 12,
-        pos_embed: str = "perceptron",
-        norm_name: Union[Tuple, str] = "instance",
-        conv_block: bool = False,
-        res_block: bool = True,
-        dropout_rate: float = 0.0,
-    ) -> None:
-        """
-        Args:
-            in_channels: dimension of input channels.
-            out_channels: dimension of output channels.
-            img_size: dimension of input image.
-            feature_size: dimension of network feature size.
-            hidden_size: dimension of hidden layer.
-            mlp_dim: dimension of feedforward layer.
-            num_heads: number of attention heads.
-            pos_embed: position embedding layer type.
-            norm_name: feature normalization type and arguments.
-            conv_block: bool argument to determine if convolutional block is used.
-            res_block: bool argument to determine if residual block is used.
-            dropout_rate: faction of the input units to drop.
+        # Examples::
 
-        Examples::
+            # # for single channel input 4-channel output with patch size of (96,96,96), feature size of 32 and batch norm
+            # >>> net = UNETR(in_channels=1, out_channels=4, img_size=(96,96,96), feature_size=32, norm_name='batch')
 
-            # for single channel input 4-channel output with patch size of (96,96,96), feature size of 32 and batch norm
-            >>> net = UNETR(in_channels=1, out_channels=4, img_size=(96,96,96), feature_size=32, norm_name='batch')
+            # # for 4-channel input 3-channel output with patch size of (128,128,128), conv position embedding and instance norm
+            # >>> net = UNETR(in_channels=4, out_channels=3, img_size=(128,128,128), pos_embed='conv', norm_name='instance')
 
-            # for 4-channel input 3-channel output with patch size of (128,128,128), conv position embedding and instance norm
-            >>> net = UNETR(in_channels=4, out_channels=3, img_size=(128,128,128), pos_embed='conv', norm_name='instance')
+        # """
 
-        """
+        # super().__init__()
 
-        super().__init__()
+        # if not (0 <= dropout_rate <= 1):
+            # raise AssertionError("dropout_rate should be between 0 and 1.")
 
-        if not (0 <= dropout_rate <= 1):
-            raise AssertionError("dropout_rate should be between 0 and 1.")
+        # if hidden_size % num_heads != 0:
+            # raise AssertionError("hidden size should be divisible by num_heads.")
 
-        if hidden_size % num_heads != 0:
-            raise AssertionError("hidden size should be divisible by num_heads.")
+        # if pos_embed not in ["conv", "perceptron"]:
+            # raise KeyError(f"Position embedding layer of type {pos_embed} is not supported.")
 
-        if pos_embed not in ["conv", "perceptron"]:
-            raise KeyError(f"Position embedding layer of type {pos_embed} is not supported.")
+        # self.num_layers = 12
+        # self.patch_size = (16, 16, 16)
+        # self.feat_size = (
+            # img_size[0] // self.patch_size[0],
+            # img_size[1] // self.patch_size[1],
+            # img_size[2] // self.patch_size[2],
+        # )
+        # self.hidden_size = hidden_size
+        # self.classification = False
+        # self.vit = ViT(
+            # in_channels=in_channels,
+            # img_size=img_size,
+            # patch_size=self.patch_size,
+            # hidden_size=hidden_size,
+            # mlp_dim=mlp_dim,
+            # num_layers=self.num_layers,
+            # num_heads=num_heads,
+            # pos_embed=pos_embed,
+            # classification=self.classification,
+            # dropout_rate=dropout_rate,
+        # )
+        # self.encoder1 = UnetrBasicBlock(
+            # spatial_dims=3,
+            # in_channels=in_channels,
+            # out_channels=feature_size,
+            # kernel_size=3,
+            # stride=1,
+            # norm_name=norm_name,
+            # res_block=res_block,
+        # )
+        # self.encoder2 = UnetrPrUpBlock(
+            # spatial_dims=3,
+            # in_channels=hidden_size,
+            # out_channels=feature_size * 2,
+            # num_layer=2,
+            # kernel_size=3,
+            # stride=1,
+            # upsample_kernel_size=2,
+            # norm_name=norm_name,
+            # conv_block=conv_block,
+            # res_block=res_block,
+        # )
+        # self.encoder3 = UnetrPrUpBlock(
+            # spatial_dims=3,
+            # in_channels=hidden_size,
+            # out_channels=feature_size * 4,
+            # num_layer=1,
+            # kernel_size=3,
+            # stride=1,
+            # upsample_kernel_size=2,
+            # norm_name=norm_name,
+            # conv_block=conv_block,
+            # res_block=res_block,
+        # )
+        # self.encoder4 = UnetrPrUpBlock(
+            # spatial_dims=3,
+            # in_channels=hidden_size,
+            # out_channels=feature_size * 8,
+            # num_layer=0,
+            # kernel_size=3,
+            # stride=1,
+            # upsample_kernel_size=2,
+            # norm_name=norm_name,
+            # conv_block=conv_block,
+            # res_block=res_block,
+        # )
+        # self.decoder5 = UnetrUpBlock(
+            # spatial_dims=3,
+            # in_channels=hidden_size,
+            # out_channels=feature_size * 8,
+            # kernel_size=3,
+            # upsample_kernel_size=2,
+            # norm_name=norm_name,
+            # res_block=res_block,
+        # )
+        # self.decoder4 = UnetrUpBlock(
+            # spatial_dims=3,
+            # in_channels=feature_size * 8,
+            # out_channels=feature_size * 4,
+            # kernel_size=3,
+            # upsample_kernel_size=2,
+            # norm_name=norm_name,
+            # res_block=res_block,
+        # )
+        # self.decoder3 = UnetrUpBlock(
+            # spatial_dims=3,
+            # in_channels=feature_size * 4,
+            # out_channels=feature_size * 2,
+            # kernel_size=3,
+            # upsample_kernel_size=2,
+            # norm_name=norm_name,
+            # res_block=res_block,
+        # )
+        # self.decoder2 = UnetrUpBlock(
+            # spatial_dims=3,
+            # in_channels=feature_size * 2,
+            # out_channels=feature_size,
+            # kernel_size=3,
+            # upsample_kernel_size=2,
+            # norm_name=norm_name,
+            # res_block=res_block,
+        # )
+        # self.out = UnetOutBlock(spatial_dims=3, in_channels=feature_size, out_channels=out_channels)  # type: ignore
 
-        self.num_layers = 12
-        self.patch_size = (16, 16, 16)
-        self.feat_size = (
-            img_size[0] // self.patch_size[0],
-            img_size[1] // self.patch_size[1],
-            img_size[2] // self.patch_size[2],
-        )
-        self.hidden_size = hidden_size
-        self.classification = False
-        self.vit = ViT(
-            in_channels=in_channels,
-            img_size=img_size,
-            patch_size=self.patch_size,
-            hidden_size=hidden_size,
-            mlp_dim=mlp_dim,
-            num_layers=self.num_layers,
-            num_heads=num_heads,
-            pos_embed=pos_embed,
-            classification=self.classification,
-            dropout_rate=dropout_rate,
-        )
-        self.encoder1 = UnetrBasicBlock(
-            spatial_dims=3,
-            in_channels=in_channels,
-            out_channels=feature_size,
-            kernel_size=3,
-            stride=1,
-            norm_name=norm_name,
-            res_block=res_block,
-        )
-        self.encoder2 = UnetrPrUpBlock(
-            spatial_dims=3,
-            in_channels=hidden_size,
-            out_channels=feature_size * 2,
-            num_layer=2,
-            kernel_size=3,
-            stride=1,
-            upsample_kernel_size=2,
-            norm_name=norm_name,
-            conv_block=conv_block,
-            res_block=res_block,
-        )
-        self.encoder3 = UnetrPrUpBlock(
-            spatial_dims=3,
-            in_channels=hidden_size,
-            out_channels=feature_size * 4,
-            num_layer=1,
-            kernel_size=3,
-            stride=1,
-            upsample_kernel_size=2,
-            norm_name=norm_name,
-            conv_block=conv_block,
-            res_block=res_block,
-        )
-        self.encoder4 = UnetrPrUpBlock(
-            spatial_dims=3,
-            in_channels=hidden_size,
-            out_channels=feature_size * 8,
-            num_layer=0,
-            kernel_size=3,
-            stride=1,
-            upsample_kernel_size=2,
-            norm_name=norm_name,
-            conv_block=conv_block,
-            res_block=res_block,
-        )
-        self.decoder5 = UnetrUpBlock(
-            spatial_dims=3,
-            in_channels=hidden_size,
-            out_channels=feature_size * 8,
-            kernel_size=3,
-            upsample_kernel_size=2,
-            norm_name=norm_name,
-            res_block=res_block,
-        )
-        self.decoder4 = UnetrUpBlock(
-            spatial_dims=3,
-            in_channels=feature_size * 8,
-            out_channels=feature_size * 4,
-            kernel_size=3,
-            upsample_kernel_size=2,
-            norm_name=norm_name,
-            res_block=res_block,
-        )
-        self.decoder3 = UnetrUpBlock(
-            spatial_dims=3,
-            in_channels=feature_size * 4,
-            out_channels=feature_size * 2,
-            kernel_size=3,
-            upsample_kernel_size=2,
-            norm_name=norm_name,
-            res_block=res_block,
-        )
-        self.decoder2 = UnetrUpBlock(
-            spatial_dims=3,
-            in_channels=feature_size * 2,
-            out_channels=feature_size,
-            kernel_size=3,
-            upsample_kernel_size=2,
-            norm_name=norm_name,
-            res_block=res_block,
-        )
-        self.out = UnetOutBlock(spatial_dims=3, in_channels=feature_size, out_channels=out_channels)  # type: ignore
+    # def proj_feat(self, x, hidden_size, feat_size):
+        # x = x.view(x.size(0), feat_size[0], feat_size[1], feat_size[2], hidden_size)
+        # x = x.permute(0, 4, 1, 2, 3).contiguous()
+        # return x
 
-    def proj_feat(self, x, hidden_size, feat_size):
-        x = x.view(x.size(0), feat_size[0], feat_size[1], feat_size[2], hidden_size)
-        x = x.permute(0, 4, 1, 2, 3).contiguous()
+    # def load_from(self, weights):
+        # with torch.no_grad():
+            # res_weight = weights
+            # # copy weights from patch embedding
+            # for i in weights["state_dict"]:
+                # print(i)
+            # self.vit.patch_embedding.position_embeddings.copy_(
+                # weights["state_dict"]["module.transformer.patch_embedding.position_embeddings_3d"]
+            # )
+            # self.vit.patch_embedding.cls_token.copy_(
+                # weights["state_dict"]["module.transformer.patch_embedding.cls_token"]
+            # )
+            # self.vit.patch_embedding.patch_embeddings[1].weight.copy_(
+                # weights["state_dict"]["module.transformer.patch_embedding.patch_embeddings.1.weight"]
+            # )
+            # self.vit.patch_embedding.patch_embeddings[1].bias.copy_(
+                # weights["state_dict"]["module.transformer.patch_embedding.patch_embeddings.1.bias"]
+            # )
+
+            # # copy weights from  encoding blocks (default: num of blocks: 12)
+            # for bname, block in self.vit.blocks.named_children():
+                # print(block)
+                # block.loadFrom(weights, n_block=bname)
+            # # last norm layer of transformer
+            # self.vit.norm.weight.copy_(weights["state_dict"]["module.transformer.norm.weight"])
+            # self.vit.norm.bias.copy_(weights["state_dict"]["module.transformer.norm.bias"])
+
+    # def forward(self, x_in):
+        # x, hidden_states_out = self.vit(x_in)
+        # enc1 = self.encoder1(x_in)
+        # x2 = hidden_states_out[3]
+        # enc2 = self.encoder2(self.proj_feat(x2, self.hidden_size, self.feat_size))
+        # x3 = hidden_states_out[6]
+        # enc3 = self.encoder3(self.proj_feat(x3, self.hidden_size, self.feat_size))
+        # x4 = hidden_states_out[9]
+        # enc4 = self.encoder4(self.proj_feat(x4, self.hidden_size, self.feat_size))
+        # dec4 = self.proj_feat(x, self.hidden_size, self.feat_size)
+        # dec3 = self.decoder5(dec4, enc4)
+        # dec2 = self.decoder4(dec3, enc3)
+        # dec1 = self.decoder3(dec2, enc2)
+        # out = self.decoder2(dec1, enc1)
+        # logits = self.out(out)
+        # return logits
+
+
+
+
+# coding=utf-8
+import copy
+import logging
+import math
+
+from os.path import join as pjoin
+
+import torch.nn as nn
+import numpy as np
+
+from torch.nn import CrossEntropyLoss, Dropout, Softmax, Linear, Conv2d, LayerNorm
+from torch.nn.modules.utils import _pair
+from scipy import ndimage
+import vit_seg_configs as configs
+from vit_seg_modeling_resnet_skip import ResNetV2
+
+
+logger = logging.getLogger(__name__)
+
+
+ATTENTION_Q = "MultiHeadDotProductAttention_1/query"
+ATTENTION_K = "MultiHeadDotProductAttention_1/key"
+ATTENTION_V = "MultiHeadDotProductAttention_1/value"
+ATTENTION_OUT = "MultiHeadDotProductAttention_1/out"
+FC_0 = "MlpBlock_3/Dense_0"
+FC_1 = "MlpBlock_3/Dense_1"
+ATTENTION_NORM = "LayerNorm_0"
+MLP_NORM = "LayerNorm_2"
+
+
+def np2th(weights, conv=False):
+    """Possibly convert HWIO to OIHW."""
+    if conv:
+        weights = weights.transpose([3, 2, 0, 1])
+    return torch.from_numpy(weights)
+
+
+def swish(x):
+    return x * torch.sigmoid(x)
+
+
+ACT2FN = {"gelu": torch.nn.functional.gelu, "relu": torch.nn.functional.relu, "swish": swish}
+
+
+class Attention(nn.Module):
+    def __init__(self, config, vis):
+        super(Attention, self).__init__()
+        self.vis = vis
+        self.num_attention_heads = config.transformer["num_heads"]
+        self.attention_head_size = int(config.hidden_size / self.num_attention_heads)
+        self.all_head_size = self.num_attention_heads * self.attention_head_size
+
+        self.query = Linear(config.hidden_size, self.all_head_size)
+        self.key = Linear(config.hidden_size, self.all_head_size)
+        self.value = Linear(config.hidden_size, self.all_head_size)
+
+        self.out = Linear(config.hidden_size, config.hidden_size)
+        self.attn_dropout = Dropout(config.transformer["attention_dropout_rate"])
+        self.proj_dropout = Dropout(config.transformer["attention_dropout_rate"])
+
+        self.softmax = Softmax(dim=-1)
+
+    def transpose_for_scores(self, x):
+        new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
+        x = x.view(*new_x_shape)
+        return x.permute(0, 2, 1, 3)
+
+    def forward(self, hidden_states):
+        mixed_query_layer = self.query(hidden_states)
+        mixed_key_layer = self.key(hidden_states)
+        mixed_value_layer = self.value(hidden_states)
+
+        query_layer = self.transpose_for_scores(mixed_query_layer)
+        key_layer = self.transpose_for_scores(mixed_key_layer)
+        value_layer = self.transpose_for_scores(mixed_value_layer)
+
+        attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))
+        attention_scores = attention_scores / math.sqrt(self.attention_head_size)
+        attention_probs = self.softmax(attention_scores)
+        weights = attention_probs if self.vis else None
+        attention_probs = self.attn_dropout(attention_probs)
+
+        context_layer = torch.matmul(attention_probs, value_layer)
+        context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
+        new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
+        context_layer = context_layer.view(*new_context_layer_shape)
+        attention_output = self.out(context_layer)
+        attention_output = self.proj_dropout(attention_output)
+        return attention_output, weights
+
+
+class Mlp(nn.Module):
+    def __init__(self, config):
+        super(Mlp, self).__init__()
+        self.fc1 = Linear(config.hidden_size, config.transformer["mlp_dim"])
+        self.fc2 = Linear(config.transformer["mlp_dim"], config.hidden_size)
+        self.act_fn = ACT2FN["gelu"]
+        self.dropout = Dropout(config.transformer["dropout_rate"])
+
+        self._init_weights()
+
+    def _init_weights(self):
+        nn.init.xavier_uniform_(self.fc1.weight)
+        nn.init.xavier_uniform_(self.fc2.weight)
+        nn.init.normal_(self.fc1.bias, std=1e-6)
+        nn.init.normal_(self.fc2.bias, std=1e-6)
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.act_fn(x)
+        x = self.dropout(x)
+        x = self.fc2(x)
+        x = self.dropout(x)
         return x
+
+
+class Embeddings(nn.Module):
+    """Construct the embeddings from patch, position embeddings.
+    """
+    def __init__(self, config, img_size, in_channels=3):
+        super(Embeddings, self).__init__()
+        self.hybrid = None
+        self.config = config
+        img_size = _pair(img_size)
+
+        if config.patches.get("grid") is not None:   # ResNet
+            grid_size = config.patches["grid"]
+            patch_size = (img_size[0] // 16 // grid_size[0], img_size[1] // 16 // grid_size[1])
+            patch_size_real = (patch_size[0] * 16, patch_size[1] * 16)
+            n_patches = (img_size[0] // patch_size_real[0]) * (img_size[1] // patch_size_real[1])  
+            self.hybrid = True
+        else:
+            patch_size = _pair(config.patches["size"])
+            n_patches = (img_size[0] // patch_size[0]) * (img_size[1] // patch_size[1])
+            self.hybrid = False
+
+        if self.hybrid:
+            self.hybrid_model = ResNetV2(block_units=config.resnet.num_layers, width_factor=config.resnet.width_factor)
+            in_channels = self.hybrid_model.width * 16
+        self.patch_embeddings = Conv2d(in_channels=in_channels,
+                                       out_channels=config.hidden_size,
+                                       kernel_size=patch_size,
+                                       stride=patch_size)
+        self.position_embeddings = nn.Parameter(torch.zeros(1, n_patches, config.hidden_size))
+
+        self.dropout = Dropout(config.transformer["dropout_rate"])
+
+
+    def forward(self, x):
+        if self.hybrid:
+            x, features = self.hybrid_model(x)
+        else:
+            features = None
+        x = self.patch_embeddings(x)  # (B, hidden. n_patches^(1/2), n_patches^(1/2))
+        x = x.flatten(2)
+        x = x.transpose(-1, -2)  # (B, n_patches, hidden)
+
+        embeddings = x + self.position_embeddings
+        embeddings = self.dropout(embeddings)
+        return embeddings, features
+
+
+class Block(nn.Module):
+    def __init__(self, config, vis):
+        super(Block, self).__init__()
+        self.hidden_size = config.hidden_size
+        self.attention_norm = LayerNorm(config.hidden_size, eps=1e-6)
+        self.ffn_norm = LayerNorm(config.hidden_size, eps=1e-6)
+        self.ffn = Mlp(config)
+        self.attn = Attention(config, vis)
+
+    def forward(self, x):
+        h = x
+        x = self.attention_norm(x)
+        x, weights = self.attn(x)
+        x = x + h
+
+        h = x
+        x = self.ffn_norm(x)
+        x = self.ffn(x)
+        x = x + h
+        return x, weights
+
+    def load_from(self, weights, n_block):
+        ROOT = f"Transformer/encoderblock_{n_block}"
+        with torch.no_grad():
+            query_weight = np2th(weights[pjoin(ROOT, ATTENTION_Q, "kernel")]).view(self.hidden_size, self.hidden_size).t()
+            key_weight = np2th(weights[pjoin(ROOT, ATTENTION_K, "kernel")]).view(self.hidden_size, self.hidden_size).t()
+            value_weight = np2th(weights[pjoin(ROOT, ATTENTION_V, "kernel")]).view(self.hidden_size, self.hidden_size).t()
+            out_weight = np2th(weights[pjoin(ROOT, ATTENTION_OUT, "kernel")]).view(self.hidden_size, self.hidden_size).t()
+
+            query_bias = np2th(weights[pjoin(ROOT, ATTENTION_Q, "bias")]).view(-1)
+            key_bias = np2th(weights[pjoin(ROOT, ATTENTION_K, "bias")]).view(-1)
+            value_bias = np2th(weights[pjoin(ROOT, ATTENTION_V, "bias")]).view(-1)
+            out_bias = np2th(weights[pjoin(ROOT, ATTENTION_OUT, "bias")]).view(-1)
+
+            self.attn.query.weight.copy_(query_weight)
+            self.attn.key.weight.copy_(key_weight)
+            self.attn.value.weight.copy_(value_weight)
+            self.attn.out.weight.copy_(out_weight)
+            self.attn.query.bias.copy_(query_bias)
+            self.attn.key.bias.copy_(key_bias)
+            self.attn.value.bias.copy_(value_bias)
+            self.attn.out.bias.copy_(out_bias)
+
+            mlp_weight_0 = np2th(weights[pjoin(ROOT, FC_0, "kernel")]).t()
+            mlp_weight_1 = np2th(weights[pjoin(ROOT, FC_1, "kernel")]).t()
+            mlp_bias_0 = np2th(weights[pjoin(ROOT, FC_0, "bias")]).t()
+            mlp_bias_1 = np2th(weights[pjoin(ROOT, FC_1, "bias")]).t()
+
+            self.ffn.fc1.weight.copy_(mlp_weight_0)
+            self.ffn.fc2.weight.copy_(mlp_weight_1)
+            self.ffn.fc1.bias.copy_(mlp_bias_0)
+            self.ffn.fc2.bias.copy_(mlp_bias_1)
+
+            self.attention_norm.weight.copy_(np2th(weights[pjoin(ROOT, ATTENTION_NORM, "scale")]))
+            self.attention_norm.bias.copy_(np2th(weights[pjoin(ROOT, ATTENTION_NORM, "bias")]))
+            self.ffn_norm.weight.copy_(np2th(weights[pjoin(ROOT, MLP_NORM, "scale")]))
+            self.ffn_norm.bias.copy_(np2th(weights[pjoin(ROOT, MLP_NORM, "bias")]))
+
+
+class Encoder(nn.Module):
+    def __init__(self, config, vis):
+        super(Encoder, self).__init__()
+        self.vis = vis
+        self.layer = nn.ModuleList()
+        self.encoder_norm = LayerNorm(config.hidden_size, eps=1e-6)
+        for _ in range(config.transformer["num_layers"]):
+            layer = Block(config, vis)
+            self.layer.append(copy.deepcopy(layer))
+
+    def forward(self, hidden_states):
+        attn_weights = []
+        for layer_block in self.layer:
+            hidden_states, weights = layer_block(hidden_states)
+            if self.vis:
+                attn_weights.append(weights)
+        encoded = self.encoder_norm(hidden_states)
+        return encoded, attn_weights
+
+
+class Transformer(nn.Module):
+    def __init__(self, config, img_size, vis):
+        super(Transformer, self).__init__()
+        self.embeddings = Embeddings(config, img_size=img_size)
+        self.encoder = Encoder(config, vis)
+
+    def forward(self, input_ids):
+        embedding_output, features = self.embeddings(input_ids)
+        encoded, attn_weights = self.encoder(embedding_output)  # (B, n_patch, hidden)
+        return encoded, attn_weights, features
+
+
+class Conv2dReLU(nn.Sequential):
+    def __init__(
+            self,
+            in_channels,
+            out_channels,
+            kernel_size,
+            padding=0,
+            stride=1,
+            use_batchnorm=True,
+    ):
+        conv = nn.Conv2d(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride=stride,
+            padding=padding,
+            bias=not (use_batchnorm),
+        )
+        relu = nn.ReLU(inplace=True)
+
+        bn = nn.BatchNorm2d(out_channels)
+
+        super(Conv2dReLU, self).__init__(conv, bn, relu)
+
+
+class DecoderBlock(nn.Module):
+    def __init__(
+            self,
+            in_channels,
+            out_channels,
+            skip_channels=0,
+            use_batchnorm=True,
+    ):
+        super().__init__()
+        self.conv1 = Conv2dReLU(
+            in_channels + skip_channels,
+            out_channels,
+            kernel_size=3,
+            padding=1,
+            use_batchnorm=use_batchnorm,
+        )
+        self.conv2 = Conv2dReLU(
+            out_channels,
+            out_channels,
+            kernel_size=3,
+            padding=1,
+            use_batchnorm=use_batchnorm,
+        )
+        self.up = nn.UpsamplingBilinear2d(scale_factor=2)
+
+    def forward(self, x, skip=None):
+        x = self.up(x)
+        if skip is not None:
+            x = torch.cat([x, skip], dim=1)
+        x = self.conv1(x)
+        x = self.conv2(x)
+        return x
+
+
+class SegmentationHead(nn.Sequential):
+
+    def __init__(self, in_channels, out_channels, kernel_size=3, upsampling=1):
+        conv2d = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=kernel_size // 2)
+        upsampling = nn.UpsamplingBilinear2d(scale_factor=upsampling) if upsampling > 1 else nn.Identity()
+        super().__init__(conv2d, upsampling)
+
+
+class DecoderCup(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+        head_channels = 512
+        self.conv_more = Conv2dReLU(
+            config.hidden_size,
+            head_channels,
+            kernel_size=3,
+            padding=1,
+            use_batchnorm=True,
+        )
+        decoder_channels = config.decoder_channels
+        in_channels = [head_channels] + list(decoder_channels[:-1])
+        out_channels = decoder_channels
+
+        if self.config.n_skip != 0:
+            skip_channels = self.config.skip_channels
+            for i in range(4-self.config.n_skip):  # re-select the skip channels according to n_skip
+                skip_channels[3-i]=0
+
+        else:
+            skip_channels=[0,0,0,0]
+
+        blocks = [
+            DecoderBlock(in_ch, out_ch, sk_ch) for in_ch, out_ch, sk_ch in zip(in_channels, out_channels, skip_channels)
+        ]
+        self.blocks = nn.ModuleList(blocks)
+
+    def forward(self, hidden_states, features=None):
+        B, n_patch, hidden = hidden_states.size()  # reshape from (B, n_patch, hidden) to (B, h, w, hidden)
+        h, w = int(np.sqrt(n_patch)), int(np.sqrt(n_patch))
+        x = hidden_states.permute(0, 2, 1)
+        x = x.contiguous().view(B, hidden, h, w)
+        x = self.conv_more(x)
+        for i, decoder_block in enumerate(self.blocks):
+            if features is not None:
+                skip = features[i] if (i < self.config.n_skip) else None
+            else:
+                skip = None
+            x = decoder_block(x, skip=skip)
+        return x
+
+
+class VisionTransformer(nn.Module):
+    def __init__(self, config, img_size=224, num_classes=21843, zero_head=False, vis=False):
+        super(VisionTransformer, self).__init__()
+        self.num_classes = num_classes
+        self.zero_head = zero_head
+        self.classifier = config.classifier
+        self.transformer = Transformer(config, img_size, vis)
+        self.decoder = DecoderCup(config)
+        self.segmentation_head = SegmentationHead(
+            in_channels=config['decoder_channels'][-1],
+            out_channels=config['n_classes'],
+            kernel_size=3,
+        )
+        self.config = config
+
+    def forward(self, x):
+        if x.size()[1] == 1:
+            x = x.repeat(1,3,1,1)
+        x, attn_weights, features = self.transformer(x)  # (B, n_patch, hidden)
+        x = self.decoder(x, features)
+        logits = self.segmentation_head(x)
+        return logits
 
     def load_from(self, weights):
         with torch.no_grad():
+
             res_weight = weights
-            # copy weights from patch embedding
-            for i in weights["state_dict"]:
-                print(i)
-            self.vit.patch_embedding.position_embeddings.copy_(
-                weights["state_dict"]["module.transformer.patch_embedding.position_embeddings_3d"]
-            )
-            self.vit.patch_embedding.cls_token.copy_(
-                weights["state_dict"]["module.transformer.patch_embedding.cls_token"]
-            )
-            self.vit.patch_embedding.patch_embeddings[1].weight.copy_(
-                weights["state_dict"]["module.transformer.patch_embedding.patch_embeddings.1.weight"]
-            )
-            self.vit.patch_embedding.patch_embeddings[1].bias.copy_(
-                weights["state_dict"]["module.transformer.patch_embedding.patch_embeddings.1.bias"]
-            )
+            self.transformer.embeddings.patch_embeddings.weight.copy_(np2th(weights["embedding/kernel"], conv=True))
+            self.transformer.embeddings.patch_embeddings.bias.copy_(np2th(weights["embedding/bias"]))
 
-            # copy weights from  encoding blocks (default: num of blocks: 12)
-            for bname, block in self.vit.blocks.named_children():
-                print(block)
-                block.loadFrom(weights, n_block=bname)
-            # last norm layer of transformer
-            self.vit.norm.weight.copy_(weights["state_dict"]["module.transformer.norm.weight"])
-            self.vit.norm.bias.copy_(weights["state_dict"]["module.transformer.norm.bias"])
+            self.transformer.encoder.encoder_norm.weight.copy_(np2th(weights["Transformer/encoder_norm/scale"]))
+            self.transformer.encoder.encoder_norm.bias.copy_(np2th(weights["Transformer/encoder_norm/bias"]))
 
-    def forward(self, x_in):
-        x, hidden_states_out = self.vit(x_in)
-        enc1 = self.encoder1(x_in)
-        x2 = hidden_states_out[3]
-        enc2 = self.encoder2(self.proj_feat(x2, self.hidden_size, self.feat_size))
-        x3 = hidden_states_out[6]
-        enc3 = self.encoder3(self.proj_feat(x3, self.hidden_size, self.feat_size))
-        x4 = hidden_states_out[9]
-        enc4 = self.encoder4(self.proj_feat(x4, self.hidden_size, self.feat_size))
-        dec4 = self.proj_feat(x, self.hidden_size, self.feat_size)
-        dec3 = self.decoder5(dec4, enc4)
-        dec2 = self.decoder4(dec3, enc3)
-        dec1 = self.decoder3(dec2, enc2)
-        out = self.decoder2(dec1, enc1)
-        logits = self.out(out)
-        return logits
+            posemb = np2th(weights["Transformer/posembed_input/pos_embedding"])
 
+            posemb_new = self.transformer.embeddings.position_embeddings
+            if posemb.size() == posemb_new.size():
+                self.transformer.embeddings.position_embeddings.copy_(posemb)
+            elif posemb.size()[1]-1 == posemb_new.size()[1]:
+                posemb = posemb[:, 1:]
+                self.transformer.embeddings.position_embeddings.copy_(posemb)
+            else:
+                logger.info("load_pretrained: resized variant: %s to %s" % (posemb.size(), posemb_new.size()))
+                ntok_new = posemb_new.size(1)
+                if self.classifier == "seg":
+                    _, posemb_grid = posemb[:, :1], posemb[0, 1:]
+                gs_old = int(np.sqrt(len(posemb_grid)))
+                gs_new = int(np.sqrt(ntok_new))
+                print('load_pretrained: grid-size from %s to %s' % (gs_old, gs_new))
+                posemb_grid = posemb_grid.reshape(gs_old, gs_old, -1)
+                zoom = (gs_new / gs_old, gs_new / gs_old, 1)
+                posemb_grid = ndimage.zoom(posemb_grid, zoom, order=1)  # th2np
+                posemb_grid = posemb_grid.reshape(1, gs_new * gs_new, -1)
+                posemb = posemb_grid
+                self.transformer.embeddings.position_embeddings.copy_(np2th(posemb))
+
+            # Encoder whole
+            for bname, block in self.transformer.encoder.named_children():
+                for uname, unit in block.named_children():
+                    unit.load_from(weights, n_block=uname)
+
+            if self.transformer.embeddings.hybrid:
+                self.transformer.embeddings.hybrid_model.root.conv.weight.copy_(np2th(res_weight["conv_root/kernel"], conv=True))
+                gn_weight = np2th(res_weight["gn_root/scale"]).view(-1)
+                gn_bias = np2th(res_weight["gn_root/bias"]).view(-1)
+                self.transformer.embeddings.hybrid_model.root.gn.weight.copy_(gn_weight)
+                self.transformer.embeddings.hybrid_model.root.gn.bias.copy_(gn_bias)
+
+                for bname, block in self.transformer.embeddings.hybrid_model.body.named_children():
+                    for uname, unit in block.named_children():
+                        unit.load_from(res_weight, n_block=bname, n_unit=uname)
+
+CONFIGS = {
+    'ViT-B_16': configs.get_b16_config(),
+    'ViT-B_32': configs.get_b32_config(),
+    'ViT-L_16': configs.get_l16_config(),
+    'ViT-L_32': configs.get_l32_config(),
+    'ViT-H_14': configs.get_h14_config(),
+    'R50-ViT-B_16': configs.get_r50_b16_config(),
+    'R50-ViT-L_16': configs.get_r50_l16_config(),
+    'testing': configs.get_testing(),
+}
+
+
+
+
+
+
+
+
+
+# import torch
+# import torch.nn as nn
+from einops import rearrange, repeat
+
+# from utils.vit import ViT
+
+
+
+
+# import torch
+# import torch.nn as nn
+# import numpy as np
+# from einops import rearrange, repeat
+
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, embedding_dim, head_num):
+        super().__init__()
+
+        self.head_num = head_num
+        self.dk = (embedding_dim // head_num) ** (1 / 2)
+
+        self.qkv_layer = nn.Linear(embedding_dim, embedding_dim * 3, bias=False)
+        self.out_attention = nn.Linear(embedding_dim, embedding_dim, bias=False)
+
+    def forward(self, x, mask=None):
+        qkv = self.qkv_layer(x)
+
+        query, key, value = tuple(rearrange(qkv, 'b t (d k h ) -> k b h t d ', k=3, h=self.head_num))
+        energy = torch.einsum("... i d , ... j d -> ... i j", query, key) * self.dk
+
+        if mask is not None:
+            energy = energy.masked_fill(mask, -np.inf)
+
+        attention = torch.softmax(energy, dim=-1)
+
+        x = torch.einsum("... i j , ... j d -> ... i d", attention, value)
+
+        x = rearrange(x, "b h t d -> b t (h d)")
+        x = self.out_attention(x)
+
+        return x
+
+
+class MLP(nn.Module):
+    def __init__(self, embedding_dim, mlp_dim):
+        super().__init__()
+
+        self.mlp_layers = nn.Sequential(
+            nn.Linear(embedding_dim, mlp_dim),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(mlp_dim, embedding_dim),
+            nn.Dropout(0.1)
+        )
+
+    def forward(self, x):
+        x = self.mlp_layers(x)
+
+        return x
+
+
+class TransformerEncoderBlock(nn.Module):
+    def __init__(self, embedding_dim, head_num, mlp_dim):
+        super().__init__()
+
+        self.multi_head_attention = MultiHeadAttention(embedding_dim, head_num)
+        self.mlp = MLP(embedding_dim, mlp_dim)
+
+        self.layer_norm1 = nn.LayerNorm(embedding_dim)
+        self.layer_norm2 = nn.LayerNorm(embedding_dim)
+
+        self.dropout = nn.Dropout(0.1)
+
+    def forward(self, x):
+        _x = self.multi_head_attention(x)
+        _x = self.dropout(_x)
+        x = x + _x
+        x = self.layer_norm1(x)
+
+        _x = self.mlp(x)
+        x = x + _x
+        x = self.layer_norm2(x)
+
+        return x
+
+
+class TransformerEncoder(nn.Module):
+    def __init__(self, embedding_dim, head_num, mlp_dim, block_num=12):
+        super().__init__()
+
+        self.layer_blocks = nn.ModuleList(
+            [TransformerEncoderBlock(embedding_dim, head_num, mlp_dim) for _ in range(block_num)])
+
+    def forward(self, x):
+        for layer_block in self.layer_blocks:
+            x = layer_block(x)
+
+        return x
+
+
+class ViT(nn.Module):
+    def __init__(self, img_dim, in_channels, embedding_dim, head_num, mlp_dim,
+                 block_num, patch_dim, classification=True, num_classes=1):
+        super().__init__()
+
+        self.patch_dim = patch_dim
+        self.classification = classification
+        self.num_tokens = (img_dim // patch_dim) ** 2
+        self.token_dim = in_channels * (patch_dim ** 2)
+
+        self.projection = nn.Linear(self.token_dim, embedding_dim)
+        self.embedding = nn.Parameter(torch.rand(self.num_tokens + 1, embedding_dim))
+
+        self.cls_token = nn.Parameter(torch.randn(1, 1, embedding_dim))
+
+        self.dropout = nn.Dropout(0.1)
+
+        self.transformer = TransformerEncoder(embedding_dim, head_num, mlp_dim, block_num)
+
+        if self.classification:
+            self.mlp_head = nn.Linear(embedding_dim, num_classes)
+
+    def forward(self, x):
+        img_patches = rearrange(x,
+                                'b c (patch_x x) (patch_y y) -> b (x y) (patch_x patch_y c)',
+                                patch_x=self.patch_dim, patch_y=self.patch_dim)
+
+        batch_size, tokens, _ = img_patches.shape
+
+        project = self.projection(img_patches)
+        token = repeat(self.cls_token, 'b ... -> (b batch_size) ...',
+                       batch_size=batch_size)
+
+        patches = torch.cat([token, project], dim=1)
+        patches += self.embedding[:tokens + 1, :]
+
+        x = self.dropout(patches)
+        x = self.transformer(x)
+        x = self.mlp_head(x[:, 0, :]) if self.classification else x[:, 1:, :]
+
+        return x
+
+
+if __name__ == '__main__':
+    vit = ViT(img_dim=128,
+              in_channels=3,
+              patch_dim=16,
+              embedding_dim=512,
+              block_num=6,
+              head_num=4,
+              mlp_dim=1024)
+    print(sum(p.numel() for p in vit.parameters()))
+    print(vit(torch.rand(1, 3, 128, 128)).shape)
+
+
+
+
+
+
+class EncoderBottleneck(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1, base_width=64):
+        super().__init__()
+
+        self.downsample = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
+            nn.BatchNorm2d(out_channels)
+        )
+
+        width = int(out_channels * (base_width / 64))
+
+        self.conv1 = nn.Conv2d(in_channels, width, kernel_size=1, stride=1, bias=False)
+        self.norm1 = nn.BatchNorm2d(width)
+
+        self.conv2 = nn.Conv2d(width, width, kernel_size=3, stride=2, groups=1, padding=1, dilation=1, bias=False)
+        self.norm2 = nn.BatchNorm2d(width)
+
+        self.conv3 = nn.Conv2d(width, out_channels, kernel_size=1, stride=1, bias=False)
+        self.norm3 = nn.BatchNorm2d(out_channels)
+
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x_down = self.downsample(x)
+
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x = self.relu(x)
+
+        x = self.conv2(x)
+        x = self.norm2(x)
+        x = self.relu(x)
+
+        x = self.conv3(x)
+        x = self.norm3(x)
+        x = x + x_down
+        x = self.relu(x)
+
+        return x
+
+
+class DecoderBottleneck(nn.Module):
+    def __init__(self, in_channels, out_channels, scale_factor=2):
+        super().__init__()
+
+        self.upsample = nn.Upsample(scale_factor=scale_factor, mode='bilinear', align_corners=True)
+        self.layer = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x, x_concat=None):
+        x = self.upsample(x)
+
+        if x_concat is not None:
+            x = torch.cat([x_concat, x], dim=1)
+
+        x = self.layer(x)
+        return x
+
+
+class Encoder(nn.Module):
+    def __init__(self, img_dim, in_channels, out_channels, head_num, mlp_dim, block_num, patch_dim):
+        super().__init__()
+
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=7, stride=2, padding=3, bias=False)
+        self.norm1 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+
+        self.encoder1 = EncoderBottleneck(out_channels, out_channels * 2, stride=2)
+        self.encoder2 = EncoderBottleneck(out_channels * 2, out_channels * 4, stride=2)
+        self.encoder3 = EncoderBottleneck(out_channels * 4, out_channels * 8, stride=2)
+
+        self.vit_img_dim = img_dim // patch_dim
+        self.vit = ViT(self.vit_img_dim, out_channels * 8, out_channels * 8,
+                       head_num, mlp_dim, block_num, patch_dim=1, classification=False)
+
+        self.conv2 = nn.Conv2d(out_channels * 8, 512, kernel_size=3, stride=1, padding=1)
+        self.norm2 = nn.BatchNorm2d(512)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x1 = self.relu(x)
+
+        x2 = self.encoder1(x1)
+        x3 = self.encoder2(x2)
+        x = self.encoder3(x3)
+
+        x = self.vit(x)
+        x = rearrange(x, "b (x y) c -> b c x y", x=self.vit_img_dim, y=self.vit_img_dim)
+
+        x = self.conv2(x)
+        x = self.norm2(x)
+        x = self.relu(x)
+
+        return x, x1, x2, x3
+
+
+class Decoder(nn.Module):
+    def __init__(self, out_channels, class_num):
+        super().__init__()
+
+        self.decoder1 = DecoderBottleneck(out_channels * 8, out_channels * 2)
+        self.decoder2 = DecoderBottleneck(out_channels * 4, out_channels)
+        self.decoder3 = DecoderBottleneck(out_channels * 2, int(out_channels * 1 / 2))
+        self.decoder4 = DecoderBottleneck(int(out_channels * 1 / 2), int(out_channels * 1 / 8))
+
+        self.conv1 = nn.Conv2d(int(out_channels * 1 / 8), class_num, kernel_size=1)
+
+    def forward(self, x, x1, x2, x3):
+        x = self.decoder1(x, x3)
+        x = self.decoder2(x, x2)
+        x = self.decoder3(x, x1)
+        x = self.decoder4(x)
+        x = self.conv1(x)
+
+        return x
+
+
+# if __name__ == '__main__':
+    # vit = ViT(img_dim=128,
+              # in_channels=3,
+              # patch_dim=16,
+              # embedding_dim=512,
+              # block_num=6,
+              # head_num=4,
+              # mlp_dim=1024)
+    # print(sum(p.numel() for p in vit.parameters()))
+    # print(vit(torch.rand(1, 3, 128, 128)).shape)
+    
+class TransUNet(nn.Module):
+    def __init__(self, num_classes=1, input_channels=3, deep_supervision=False, img_dim=256, in_channels=3, out_channels=128, head_num=4, mlp_dim=512, block_num=8, patch_dim=16, class_num=1):
+        super().__init__()
+
+        in_channels = input_channels
+        class_num = num_classes
+
+        self.encoder = Encoder(img_dim, in_channels, out_channels,
+                               head_num, mlp_dim, block_num, patch_dim)
+
+        self.decoder = Decoder(out_channels, class_num)
+
+    def forward(self, x):
+        x, x1, x2, x3 = self.encoder(x)
+        x = self.decoder(x, x1, x2, x3)
+
+        return x

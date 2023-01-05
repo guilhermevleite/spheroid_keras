@@ -20,6 +20,10 @@ import time
 from archs import UNext
 
 
+DATASETS_PATH = '/workspace/deep_learning/datasets/segmentation'
+MODELS_PATH = '/workspace/deep_learning/experiments/models'
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
 
@@ -34,7 +38,7 @@ def parse_args():
 def main():
     args = parse_args()
 
-    with open('models/%s/config.yml' % args.name, 'r') as f:
+    with open(MODELS_PATH+'/%s/config.yml' % args.name, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     print('-'*20)
@@ -52,12 +56,12 @@ def main():
     model = model.cuda()
 
     # Data loading code
-    img_ids = glob(os.path.join('inputs', config['dataset'], 'images', '*' + config['img_ext']))
+    img_ids = glob(os.path.join(DATASETS_PATH, config['dataset'], 'images', '*' + config['img_ext']))
     img_ids = [os.path.splitext(os.path.basename(p))[0] for p in img_ids]
 
     _, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
 
-    model.load_state_dict(torch.load('models/%s/model.pth' %
+    model.load_state_dict(torch.load(MODELS_PATH+'/%s/model.pth' %
                                      config['name']))
     model.eval()
 
@@ -68,8 +72,8 @@ def main():
 
     val_dataset = Dataset(
         img_ids=val_img_ids,
-        img_dir=os.path.join('inputs', config['dataset'], 'images'),
-        mask_dir=os.path.join('inputs', config['dataset'], 'masks'),
+        img_dir=os.path.join(DATASETS_PATH, config['dataset'], 'images'),
+        mask_dir=os.path.join(DATASETS_PATH, config['dataset'], 'masks'),
         img_ext=config['img_ext'],
         mask_ext=config['mask_ext'],
         num_classes=config['num_classes'],
