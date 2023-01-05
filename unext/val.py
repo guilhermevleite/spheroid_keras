@@ -15,13 +15,11 @@ import archs
 from dataset import Dataset
 from metrics import iou_score
 from utils import AverageMeter
-from albumentations import RandomRotate90,Resize
-import time
-from archs import UNext
+from albumentations import Resize
+# import time
+# from archs import UNext
 
-
-DATASETS_PATH = '/workspace/deep_learning/datasets/segmentation'
-MODELS_PATH = '/workspace/deep_learning/experiments/models'
+from .settings import DATASETS_PATH, MODELS_PATH
 
 
 def parse_args():
@@ -56,7 +54,10 @@ def main():
     model = model.cuda()
 
     # Data loading code
-    img_ids = glob(os.path.join(DATASETS_PATH, config['dataset'], 'images', '*' + config['img_ext']))
+    img_ids = glob(os.path.join(DATASETS_PATH,
+                                config['dataset'],
+                                'images',
+                                '*' + config['img_ext']))
     img_ids = [os.path.splitext(os.path.basename(p))[0] for p in img_ids]
 
     _, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
@@ -87,12 +88,15 @@ def main():
 
     iou_avg_meter = AverageMeter()
     dice_avg_meter = AverageMeter()
-    gput = AverageMeter()
-    cput = AverageMeter()
+    # gput = AverageMeter()
+    # cput = AverageMeter()
 
-    count = 0
+    # count = 0
     for c in range(config['num_classes']):
-        os.makedirs(os.path.join('outputs', config['name'], str(c)), exist_ok=True)
+        os.makedirs(os.path.join('outputs',
+                                 config['name'],
+                                 str(c)),
+                    exist_ok=True)
     with torch.no_grad():
         for input, target, meta in tqdm(val_loader, total=len(val_loader)):
             input = input.cuda()
@@ -101,14 +105,13 @@ def main():
             # compute output
             output = model(input)
 
-
-            iou,dice = iou_score(output, target)
+            iou, dice = iou_score(output, target)
             iou_avg_meter.update(iou, input.size(0))
             dice_avg_meter.update(dice, input.size(0))
 
             output = torch.sigmoid(output).cpu().numpy()
-            output[output>=0.5]=1
-            output[output<0.5]=0
+            output[output >= 0.5] = 1
+            output[output < 0.5] = 0
 
             for i in range(len(output)):
                 for c in range(config['num_classes']):

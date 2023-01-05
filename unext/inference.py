@@ -18,6 +18,8 @@ from dataset import Dataset
 from metrics import iou_score
 from utils import AverageMeter
 import archs
+
+from .settings import DATASETS_PATH, MODELS_PATH, OUTPUT_PATH
 # from archs import UNext
 
 
@@ -37,7 +39,7 @@ def parse_args():
 def main():
     args = parse_args()
 
-    with open('models/%s/config.yml' % args.name, 'r') as f:
+    with open(MODELS_PATH + '/%s/config.yml' % args.name, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     cudnn.benchmark = True
@@ -47,7 +49,7 @@ def main():
                                            config['deep_supervision'])
     model = model.cuda()
 
-    img_ids = glob(os.path.join('inputs',
+    img_ids = glob(os.path.join(DATASETS_PATH,
                                 config['dataset'],
                                 'images',
                                 '*' + config['img_ext']))
@@ -56,7 +58,7 @@ def main():
     _, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
     val_img_ids = img_ids
 
-    model.load_state_dict(torch.load('models/%s/model.pth' %
+    model.load_state_dict(torch.load(MODELS_PATH + '/%s/model.pth' %
                                      config['name']))
     model.eval()
 
@@ -67,8 +69,8 @@ def main():
 
     val_dataset = Dataset(
         img_ids=val_img_ids,
-        img_dir=os.path.join('inputs', config['dataset'], 'images'),
-        mask_dir=os.path.join('inputs', config['dataset'], 'masks'),
+        img_dir=os.path.join(DATASETS_PATH, config['dataset'], 'images'),
+        mask_dir=os.path.join(DATASETS_PATH, config['dataset'], 'masks'),
         img_ext=config['img_ext'],
         mask_ext=config['mask_ext'],
         num_classes=config['num_classes'],
@@ -87,7 +89,7 @@ def main():
 
     # count = 0
     for c in range(config['num_classes']):
-        os.makedirs(os.path.join('outputs',
+        os.makedirs(os.path.join(OUTPUT_PATH,
                                  config['name'],
                                  str(c)), exist_ok=True)
 
