@@ -19,7 +19,7 @@ from metrics import iou_score
 from utils import AverageMeter
 import archs
 
-from .settings import DATASETS_PATH, MODELS_PATH, OUTPUT_PATH
+from settings import DATASETS_PATH, MODELS_PATH, OUTPUT_PATH
 # from archs import UNext
 
 
@@ -30,6 +30,8 @@ def parse_args():
                         help='model name')
     parser.add_argument('--dataset', default=None,
                         help='dataset name')
+    parser.add_argument('--out', default=None,
+                        help='output folder, only use if diferent than --name')
 
     args = parser.parse_args()
 
@@ -49,14 +51,17 @@ def main():
                                            config['deep_supervision'])
     model = model.cuda()
 
+    print('DATASET', args.dataset)
     img_ids = glob(os.path.join(DATASETS_PATH,
-                                config['dataset'],
+                                args.dataset,
                                 'images',
                                 '*' + config['img_ext']))
     img_ids = [os.path.splitext(os.path.basename(p))[0] for p in img_ids]
 
-    _, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
+    # _, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
+    # print('BEFORE', len(val_img_ids))
     val_img_ids = img_ids
+    print('AFTER', len(val_img_ids))
 
     model.load_state_dict(torch.load(MODELS_PATH + '/%s/model.pth' %
                                      config['name']))
@@ -69,8 +74,8 @@ def main():
 
     val_dataset = Dataset(
         img_ids=val_img_ids,
-        img_dir=os.path.join(DATASETS_PATH, config['dataset'], 'images'),
-        mask_dir=os.path.join(DATASETS_PATH, config['dataset'], 'masks'),
+        img_dir=os.path.join(DATASETS_PATH, args.dataset, 'images'),
+        mask_dir=os.path.join(DATASETS_PATH, args.dataset, 'masks'),
         img_ext=config['img_ext'],
         mask_ext=config['mask_ext'],
         num_classes=config['num_classes'],
@@ -87,7 +92,9 @@ def main():
     # gput = AverageMeter()
     # cput = AverageMeter()
 
-    # count = 0
+    if args.out != None:
+        config['name'] = args.out
+
     for c in range(config['num_classes']):
         os.makedirs(os.path.join(OUTPUT_PATH,
                                  config['name'],
@@ -111,10 +118,10 @@ def main():
 
             for i in range(len(output)):
                 for c in range(config['num_classes']):
-                    cv2.imwrite(os.path.join('outputs',
+                    cv2.imwrite(os.path.join(OUTPUT_PATH,
                                              config['name'],
                                              str(c),
-                                             meta['img_id'][i] + '.jpg'),
+                                             meta['img_id'][i] + '.png'),
                                 (output[i, c] * 255).astype('uint8'))
 
     print('IoU: %.4f' % iou_avg_meter.avg)
