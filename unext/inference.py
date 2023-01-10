@@ -100,6 +100,11 @@ def main():
                                  config['name'],
                                  str(c)), exist_ok=True)
 
+        os.makedirs(os.path.join(OUTPUT_PATH,
+                                 config['name'],
+                                 str(c),
+                                 'metric'), exist_ok=True)
+
     with torch.no_grad():
         for input, target, meta in tqdm(val_loader, total=len(val_loader)):
             input = input.cuda()
@@ -118,6 +123,13 @@ def main():
 
             for i in range(len(output)):
                 for c in range(config['num_classes']):
+                    cv2.imwrite(os.path.join(OUTPUT_PATH,
+                                             config['name'],
+                                             str(c),
+                                             'metric',
+                                             '{:.2f}_'.format(dice) + meta['img_id'][i] + '.png'),
+                                (output[i, c] * 255).astype('uint8'))
+
                     cv2.imwrite(os.path.join(OUTPUT_PATH,
                                              config['name'],
                                              str(c),
