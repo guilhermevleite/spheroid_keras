@@ -14,15 +14,13 @@ from albumentations.core.composition import Compose, OneOf
 from sklearn.model_selection import train_test_split
 from torch.optim import lr_scheduler
 from tqdm import tqdm
-from albumentations import RandomRotate90,Resize
+from albumentations import RandomRotate90, Resize
 import archs
 import losses
 from dataset import Dataset
 from metrics import iou_score
 from utils import AverageMeter, str2bool
-from archs import UNext
 
-ARCH_NAMES = archs.__all__
 LOSS_NAMES = losses.__all__
 LOSS_NAMES.append('BCEWithLogitsLoss')
 
