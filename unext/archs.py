@@ -1,28 +1,21 @@
 import torch
 from torch import nn
-import torch
-import torchvision
-from torch import nn
-from torch.autograd import Variable
-from torch.utils.data import DataLoader
-from torchvision import transforms
-from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 import torch.nn.functional as F
-import os
-import matplotlib.pyplot as plt
-from utils import *
-
-import timm
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
-import types
 import math
-from abc import ABCMeta, abstractmethod
-from mmcv.cnn import ConvModule
-import pdb
+import copy
+import logging
+from os.path import join as pjoin
+import numpy as np
+from torch.nn import Dropout, Softmax, Linear, Conv2d, LayerNorm
+from torch.nn.modules.utils import _pair
+import vit_seg_configs as configs
+from vit_seg_modeling_resnet_skip import ResNetV2
+from einops import rearrange, repeat
 
 
-__all__ = ['UNext', 'Unet', 'UNETR', 'TransUNet']
+__all__ = ['UNext', 'Unet', 'TransUNet']
 
 
 def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
@@ -31,15 +24,23 @@ def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
 
 
 def shift(dim):
-            x_shift = [ torch.roll(x_c, shift, dim) for x_c, shift in zip(xs, range(-self.pad, self.pad+1))]
-            x_cat = torch.cat(x_shift, 1)
-            x_cat = torch.narrow(x_cat, 2, self.pad, H)
-            x_cat = torch.narrow(x_cat, 3, self.pad, W)
-            return x_cat
+    x_shift = [ torch.roll(x_c, shift, dim) for x_c, shift in zip(xs, range(-self.pad, self.pad+1)) ]
+    x_cat = torch.cat(x_shift, 1)
+    x_cat = torch.narrow(x_cat, 2, self.pad, H)
+    x_cat = torch.narrow(x_cat, 3, self.pad, W)
+    return x_cat
+
 
 class shiftmlp(nn.Module):
-    def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0., shift_size=5):
+    def __init__(self,
+                 in_features,
+                 hidden_features=None,
+                 out_features=None,
+                 act_layer=nn.GELU,
+                 drop=0.,
+                 shift_size=5):
         super().__init__()
+
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
         self.dim = in_features
@@ -52,7 +53,6 @@ class shiftmlp(nn.Module):
         self.shift_size = shift_size
         self.pad = shift_size // 2
 
-        
         self.apply(self._init_weights)
 
     def _init_weights(self, m):
@@ -69,13 +69,6 @@ class shiftmlp(nn.Module):
             m.weight.data.normal_(0, math.sqrt(2.0 / fan_out))
             if m.bias is not None:
                 m.bias.data.zero_()
-    
-#     def shift(x, dim):
-#         x = F.pad(x, "constant", 0)
-#         x = torch.chunk(x, shift_size, 1)
-#         x = [ torch.roll(x_c, shift, dim) for x_s, shift in zip(x, range(-pad, pad+1))]
-#         x = torch.cat(x, 1)
-#         return x[:, :, pad:-pad, pad:-pad]
 
     def forward(self, x, H, W):
         # pdb.set_trace()
@@ -475,14 +468,18 @@ class UNext_S(nn.Module):
 
 class DoubleConv(nn.Module):
     def __init__(self, in_channels, out_channels):
-        # TODO Figure out what is this doing here. I need its a reference to nn.Module, since we are inheriting that class.
-        super(DoubleConv, self).__init__()
+        super().__init__()
+
         self.conv = nn.Sequential(
             # First conv
             # Conv2d(in_cha, out_cha, kernel, stride, padding)
-            # When we set stride and padding to one, it is called a SAME CONVOLUTION, the input height and width is the same after the convolution.
+            # When we set stride and padding to one, it is called a
+            # SAME CONVOLUTION, the input height and width is the same
+            # after the convolution.
             nn.Conv2d(in_channels, out_channels, 3, 1, 1, bias=False),
-            # There was no BachNorm at the time uNet was published, but it helps, so we are going to use it, and to do that, Conv2d 'bias' argument has to be False.
+            # There was no BachNorm at the time uNet was published, but
+            # it helps, so we are going to use it, and to do that,
+            # Conv2d 'bias' argument has to be False.
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
             # Second conv
@@ -490,29 +487,39 @@ class DoubleConv(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
-    
-    # TODO: What the fuck is this doing? Isn't self.conv just initiated inside __init__?
+
+    # TODO: What the fuck is this doing? Isn't self.conv just
+    # initiated inside __init__?
     def forward(self, x):
         return self.conv(x)
 
 
 class Unet(nn.Module):
-    def __init__(self,  num_classes, input_channels=3, deep_supervision=False,img_size=224, patch_size=16, in_chans=3,  embed_dims=[ 128, 160, 256],
-                 num_heads=[1, 2, 4, 8], mlp_ratios=[4, 4, 4, 4], qkv_bias=False, qk_scale=None, drop_rate=0.,
-                 attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
-                 depths=[1, 1, 1], sr_ratios=[8, 4, 2, 1], features=[64, 128, 256, 512], out_channels=1, **kwargs):
-    # def __init__(
-        # self,
-        # input_channels=3,
-        # img_size=224,
-        # # In the paper, the out channel was 2, we are going to use 1, since all we want is a binary segmentation.
-        # # TODO: Check whether out channel > 1 is necessary only when doing semantic segmentation.
-        # out_channels=1,
-        # # This as the features on every double convolution
-        # features=[64, 128, 256, 512]
-    # ):
-        super(Unet, self).__init__()
-        # We can not use self.downs = [], because it stores the convs and we want do do eval on these.
+    def __init__(self,
+                 num_classes,
+                 input_channels=3,
+                 deep_supervision=False,
+                 img_size=224,
+                 patch_size=16,
+                 in_chans=3,
+                 embed_dims=[128, 160, 256],
+                 num_heads=[1, 2, 4, 8],
+                 mlp_ratios=[4, 4, 4, 4],
+                 qkv_bias=False,
+                 qk_scale=None,
+                 drop_rate=0.,
+                 attn_drop_rate=0.,
+                 drop_path_rate=0.,
+                 norm_layer=nn.LayerNorm,
+                 depths=[1, 1, 1],
+                 sr_ratios=[8, 4, 2, 1],
+                 features=[64, 128, 256, 512],
+                 out_channels=1,
+                 **kwargs):
+        super().__init__()
+
+        # We can not use self.downs = [], because it stores the convs
+        # and we want do do eval on these.
         self.ups = nn.ModuleList()
         self.downs = nn.ModuleList()
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -521,7 +528,7 @@ class Unet(nn.Module):
         for feature in features:
             self.downs.append(DoubleConv(input_channels, feature))
             input_channels = feature
-        
+
         # Upward path
         # TODO: For a better result we should use Transpose Convolutions
         for feature in reversed(features):
@@ -538,48 +545,57 @@ class Unet(nn.Module):
             )
             # Second append are the TWO CONVS
             self.ups.append(DoubleConv(feature*2, feature))
-        
+
         # This is the horizontal path between downward and upward
         self.bottleneck = DoubleConv(features[-1], features[-1]*2)
-        # This is the very last conv, from 388,388,64 to 388,388 or as in the paper: 388,388,2. It does not change the size of the image, it only changes the channels.
+        # This is the very last conv, from 388,388,64 to 388,388 or as in the
+        # paper: 388,388,2. It does not change the size of the image, it only
+        # changes the channels.
         self.final_conv = nn.Conv2d(features[0], out_channels, kernel_size=1)
-    
+
     def forward(self, x):
         skip_connections = []
-        
+
         for down in self.downs:
             x = down(x)
             skip_connections.append(x)
             x = self.pool(x)
-        
+
         x = self.bottleneck(x)
-        # Simply reversing the list, because of the upward path will use it in inverse order
+        # Simply reversing the list, because of the upward path
+        # will use it in inverse order
         skip_connections = skip_connections[::-1]
-        # Step=2 because the upward path has a UP and a DoubleConv, but the skip only applies to the UP part.
+        # Step=2 because the upward path has a UP and a DoubleConv,
+        # but the skip only applies to the UP part.
         for idx in range(0, len(self.ups), 2):
             x = self.ups[idx](x)
-            # Integer division by 2 because, altough we want to skip the DoubleConv, we also want to run through the skip_connections one by one.
+            # Integer division by 2 because, altough we want to skip the
+            # DoubleConv, we also want to run through
+            # the skip_connections one by one.
             skip_connection = skip_connections[idx//2]
 
-            ''' The INPUT needs to be shaped on a multiple of 16, since it is four down ways. If that is not the case, there will be an error to concatenate because of the MAXPOOL, since them both need same height and width.
-            One work around this is to check if they are different and resize the X '''
+            # The INPUT needs to be shaped on a multiple of 16, since it is
+            # four down ways. If that is not the case, there will be an error
+            # to concatenate because of the MAXPOOL, since them both need same
+            # height and width. One work around this is to check if they are
+            # different and resize the X
+            assert x.shape == skip_connection.shape
+
             if x.shape != skip_connection.shape:
-                # Shape has: 0 BATCH_SIZE, 1 N_CHANNELS, 2 HEIGHT, 3 WIDTH. With [2:] we are taking only height and width.
+                # Shape has: 0 BATCH_SIZE, 1 N_CHANNELS, 2 HEIGHT, 3 WIDTH.
+                # With [2:] we are taking only height and width.
                 x = TF.resize(x, size=skip_connection.shape[2:])
 
-            # We have 4 dims, 0 BATCH, 1 CHANNEL, 2 HEIGHT, 3 WIDTH. We are concatenating them along the channel dimension
+            # We have 4 dims, 0 BATCH, 1 CHANNEL, 2 HEIGHT, 3 WIDTH. We are
+            # concatenating them along the channel dimension.
             concat_skip = torch.cat((skip_connection, x), dim=1)
-            # This will do the DoubleConv after we did the UP and concatenated the skip connection
+            # This will do the DoubleConv after we did the UP and concatenated
+            # the skip connection.
             x = self.ups[idx+1](concat_skip)
-        
-        return self.final_conv(x)
 
+        x = self.final_conv(x)
 
-
-
-
-
-
+        return x
 
 # from typing import Tuple, Union
 
@@ -800,26 +816,6 @@ class Unet(nn.Module):
         # logits = self.out(out)
         # return logits
 
-
-
-
-# coding=utf-8
-import copy
-import logging
-import math
-
-from os.path import join as pjoin
-
-import torch.nn as nn
-import numpy as np
-
-from torch.nn import CrossEntropyLoss, Dropout, Softmax, Linear, Conv2d, LayerNorm
-from torch.nn.modules.utils import _pair
-from scipy import ndimage
-import vit_seg_configs as configs
-from vit_seg_modeling_resnet_skip import ResNetV2
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -844,7 +840,11 @@ def swish(x):
     return x * torch.sigmoid(x)
 
 
-ACT2FN = {"gelu": torch.nn.functional.gelu, "relu": torch.nn.functional.relu, "swish": swish}
+ACT2FN = {
+        "gelu": torch.nn.functional.gelu,
+        "relu": torch.nn.functional.relu,
+        "swish": swish
+        }
 
 
 class Attention(nn.Module):
@@ -1239,6 +1239,7 @@ class VisionTransformer(nn.Module):
                     for uname, unit in block.named_children():
                         unit.load_from(res_weight, n_block=bname, n_unit=uname)
 
+
 CONFIGS = {
     'ViT-B_16': configs.get_b16_config(),
     'ViT-B_32': configs.get_b32_config(),
@@ -1251,43 +1252,33 @@ CONFIGS = {
 }
 
 
-
-
-
-
-
-
-
-# import torch
-# import torch.nn as nn
-from einops import rearrange, repeat
-
-# from utils.vit import ViT
-
-
-
-
-# import torch
-# import torch.nn as nn
-# import numpy as np
-# from einops import rearrange, repeat
-
-
 class MultiHeadAttention(nn.Module):
-    def __init__(self, embedding_dim, head_num):
+    def __init__(self,
+                 embedding_dim,
+                 head_num):
         super().__init__()
 
         self.head_num = head_num
         self.dk = (embedding_dim // head_num) ** (1 / 2)
 
-        self.qkv_layer = nn.Linear(embedding_dim, embedding_dim * 3, bias=False)
-        self.out_attention = nn.Linear(embedding_dim, embedding_dim, bias=False)
+        self.qkv_layer = nn.Linear(embedding_dim,
+                                   embedding_dim * 3,
+                                   bias=False)
+
+        self.out_attention = nn.Linear(embedding_dim,
+                                       embedding_dim,
+                                       bias=False)
 
     def forward(self, x, mask=None):
         qkv = self.qkv_layer(x)
 
-        query, key, value = tuple(rearrange(qkv, 'b t (d k h ) -> k b h t d ', k=3, h=self.head_num))
-        energy = torch.einsum("... i d , ... j d -> ... i j", query, key) * self.dk
+        query, key, value = tuple(rearrange(qkv,
+                                            'b t (d k h ) -> k b h t d ',
+                                            k=3,
+                                            h=self.head_num))
+        energy = torch.einsum("... i d , ... j d -> ... i j",
+                              query,
+                              key) * self.dk
 
         if mask is not None:
             energy = energy.masked_fill(mask, -np.inf)
@@ -1303,7 +1294,9 @@ class MultiHeadAttention(nn.Module):
 
 
 class MLP(nn.Module):
-    def __init__(self, embedding_dim, mlp_dim):
+    def __init__(self,
+                 embedding_dim,
+                 mlp_dim):
         super().__init__()
 
         self.mlp_layers = nn.Sequential(
@@ -1321,7 +1314,10 @@ class MLP(nn.Module):
 
 
 class TransformerEncoderBlock(nn.Module):
-    def __init__(self, embedding_dim, head_num, mlp_dim):
+    def __init__(self,
+                 embedding_dim,
+                 head_num,
+                 mlp_dim):
         super().__init__()
 
         self.multi_head_attention = MultiHeadAttention(embedding_dim, head_num)
@@ -1346,11 +1342,18 @@ class TransformerEncoderBlock(nn.Module):
 
 
 class TransformerEncoder(nn.Module):
-    def __init__(self, embedding_dim, head_num, mlp_dim, block_num=12):
+    def __init__(self,
+                 embedding_dim,
+                 head_num,
+                 mlp_dim,
+                 block_num=12):
         super().__init__()
 
         self.layer_blocks = nn.ModuleList(
-            [TransformerEncoderBlock(embedding_dim, head_num, mlp_dim) for _ in range(block_num)])
+            [TransformerEncoderBlock(embedding_dim,
+                                     head_num,
+                                     mlp_dim) for _ in range(block_num)
+             ])
 
     def forward(self, x):
         for layer_block in self.layer_blocks:
@@ -1360,8 +1363,16 @@ class TransformerEncoder(nn.Module):
 
 
 class ViT(nn.Module):
-    def __init__(self, img_dim, in_channels, embedding_dim, head_num, mlp_dim,
-                 block_num, patch_dim, classification=True, num_classes=1):
+    def __init__(self,
+                 img_dim,
+                 in_channels,
+                 embedding_dim,
+                 head_num,
+                 mlp_dim,
+                 block_num,
+                 patch_dim,
+                 classification=True,
+                 num_classes=1):
         super().__init__()
 
         self.patch_dim = patch_dim
@@ -1370,13 +1381,17 @@ class ViT(nn.Module):
         self.token_dim = in_channels * (patch_dim ** 2)
 
         self.projection = nn.Linear(self.token_dim, embedding_dim)
-        self.embedding = nn.Parameter(torch.rand(self.num_tokens + 1, embedding_dim))
+        self.embedding = nn.Parameter(torch.rand(self.num_tokens + 1,
+                                                 embedding_dim))
 
         self.cls_token = nn.Parameter(torch.randn(1, 1, embedding_dim))
 
         self.dropout = nn.Dropout(0.1)
 
-        self.transformer = TransformerEncoder(embedding_dim, head_num, mlp_dim, block_num)
+        self.transformer = TransformerEncoder(embedding_dim,
+                                              head_num,
+                                              mlp_dim,
+                                              block_num)
 
         if self.classification:
             self.mlp_head = nn.Linear(embedding_dim, num_classes)
@@ -1410,32 +1425,55 @@ if __name__ == '__main__':
               block_num=6,
               head_num=4,
               mlp_dim=1024)
+
     print(sum(p.numel() for p in vit.parameters()))
     print(vit(torch.rand(1, 3, 128, 128)).shape)
 
 
-
-
-
-
 class EncoderBottleneck(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1, base_width=64):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 stride=1,
+                 base_width=64):
         super().__init__()
 
-        self.downsample = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
-            nn.BatchNorm2d(out_channels)
-        )
+        self.downsample = nn.Sequential(nn.Conv2d(in_channels,
+                                                  out_channels,
+                                                  kernel_size=1,
+                                                  stride=stride,
+                                                  bias=False),
+
+                                        nn.BatchNorm2d(out_channels)
+                                        )
 
         width = int(out_channels * (base_width / 64))
 
-        self.conv1 = nn.Conv2d(in_channels, width, kernel_size=1, stride=1, bias=False)
+        self.conv1 = nn.Conv2d(in_channels,
+                               width,
+                               kernel_size=1,
+                               stride=1,
+                               bias=False)
+
         self.norm1 = nn.BatchNorm2d(width)
 
-        self.conv2 = nn.Conv2d(width, width, kernel_size=3, stride=2, groups=1, padding=1, dilation=1, bias=False)
+        self.conv2 = nn.Conv2d(width,
+                               width,
+                               kernel_size=3,
+                               stride=2,
+                               groups=1,
+                               padding=1,
+                               dilation=1,
+                               bias=False)
+
         self.norm2 = nn.BatchNorm2d(width)
 
-        self.conv3 = nn.Conv2d(width, out_channels, kernel_size=1, stride=1, bias=False)
+        self.conv3 = nn.Conv2d(width,
+                               out_channels,
+                               kernel_size=1,
+                               stride=1,
+                               bias=False)
+
         self.norm3 = nn.BatchNorm2d(out_channels)
 
         self.relu = nn.ReLU(inplace=True)
@@ -1460,18 +1498,33 @@ class EncoderBottleneck(nn.Module):
 
 
 class DecoderBottleneck(nn.Module):
-    def __init__(self, in_channels, out_channels, scale_factor=2):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 scale_factor=2):
         super().__init__()
 
-        self.upsample = nn.Upsample(scale_factor=scale_factor, mode='bilinear', align_corners=True)
-        self.layer = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
-        )
+        self.upsample = nn.Upsample(scale_factor=scale_factor,
+                                    mode='bilinear',
+                                    align_corners=True)
+
+        self.layer = nn.Sequential(nn.Conv2d(in_channels,
+                                             out_channels,
+                                             kernel_size=3,
+                                             stride=1,
+                                             padding=1),
+
+                                   nn.BatchNorm2d(out_channels),
+                                   nn.ReLU(inplace=True),
+                                   nn.Conv2d(out_channels,
+                                             out_channels,
+                                             kernel_size=3,
+                                             stride=1,
+                                             padding=1),
+
+                                   nn.BatchNorm2d(out_channels),
+                                   nn.ReLU(inplace=True)
+                                   )
 
     def forward(self, x, x_concat=None):
         x = self.upsample(x)
@@ -1483,23 +1536,53 @@ class DecoderBottleneck(nn.Module):
         return x
 
 
-class Encoder(nn.Module):
-    def __init__(self, img_dim, in_channels, out_channels, head_num, mlp_dim, block_num, patch_dim):
+class TransEncoder(nn.Module):
+    def __init__(self,
+                 img_dim,
+                 in_channels,
+                 out_channels,
+                 head_num,
+                 mlp_dim,
+                 block_num,
+                 patch_dim):
         super().__init__()
 
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=7, stride=2, padding=3, bias=False)
+        self.conv1 = nn.Conv2d(in_channels,
+                               out_channels,
+                               kernel_size=7,
+                               stride=2,
+                               padding=3,
+                               bias=False)
         self.norm1 = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
 
-        self.encoder1 = EncoderBottleneck(out_channels, out_channels * 2, stride=2)
-        self.encoder2 = EncoderBottleneck(out_channels * 2, out_channels * 4, stride=2)
-        self.encoder3 = EncoderBottleneck(out_channels * 4, out_channels * 8, stride=2)
+        self.encoder1 = EncoderBottleneck(out_channels,
+                                          out_channels * 2,
+                                          stride=2)
+
+        self.encoder2 = EncoderBottleneck(out_channels * 2,
+                                          out_channels * 4,
+                                          stride=2)
+
+        self.encoder3 = EncoderBottleneck(out_channels * 4,
+                                          out_channels * 8,
+                                          stride=2)
 
         self.vit_img_dim = img_dim // patch_dim
-        self.vit = ViT(self.vit_img_dim, out_channels * 8, out_channels * 8,
-                       head_num, mlp_dim, block_num, patch_dim=1, classification=False)
+        self.vit = ViT(self.vit_img_dim,
+                       out_channels * 8,
+                       out_channels * 8,
+                       head_num,
+                       mlp_dim,
+                       block_num,
+                       patch_dim=1,
+                       classification=False)
 
-        self.conv2 = nn.Conv2d(out_channels * 8, 512, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(out_channels * 8,
+                               512,
+                               kernel_size=3,
+                               stride=1,
+                               padding=1)
         self.norm2 = nn.BatchNorm2d(512)
 
     def forward(self, x):
@@ -1512,7 +1595,10 @@ class Encoder(nn.Module):
         x = self.encoder3(x3)
 
         x = self.vit(x)
-        x = rearrange(x, "b (x y) c -> b c x y", x=self.vit_img_dim, y=self.vit_img_dim)
+        x = rearrange(x,
+                      "b (x y) c -> b c x y",
+                      x=self.vit_img_dim,
+                      y=self.vit_img_dim)
 
         x = self.conv2(x)
         x = self.norm2(x)
@@ -1521,16 +1607,27 @@ class Encoder(nn.Module):
         return x, x1, x2, x3
 
 
-class Decoder(nn.Module):
-    def __init__(self, out_channels, class_num):
+class TransDecoder(nn.Module):
+    def __init__(self,
+                 out_channels,
+                 class_num):
         super().__init__()
 
-        self.decoder1 = DecoderBottleneck(out_channels * 8, out_channels * 2)
-        self.decoder2 = DecoderBottleneck(out_channels * 4, out_channels)
-        self.decoder3 = DecoderBottleneck(out_channels * 2, int(out_channels * 1 / 2))
-        self.decoder4 = DecoderBottleneck(int(out_channels * 1 / 2), int(out_channels * 1 / 8))
+        self.decoder1 = DecoderBottleneck(out_channels * 8,
+                                          out_channels * 2)
 
-        self.conv1 = nn.Conv2d(int(out_channels * 1 / 8), class_num, kernel_size=1)
+        self.decoder2 = DecoderBottleneck(out_channels * 4,
+                                          out_channels)
+
+        self.decoder3 = DecoderBottleneck(out_channels * 2,
+                                          int(out_channels * 1 / 2))
+
+        self.decoder4 = DecoderBottleneck(int(out_channels * 1 / 2),
+                                          int(out_channels * 1 / 8))
+
+        self.conv1 = nn.Conv2d(int(out_channels * 1 / 8),
+                               class_num,
+                               kernel_size=1)
 
     def forward(self, x, x1, x2, x3):
         x = self.decoder1(x, x3)
@@ -1542,28 +1639,34 @@ class Decoder(nn.Module):
         return x
 
 
-# if __name__ == '__main__':
-    # vit = ViT(img_dim=128,
-              # in_channels=3,
-              # patch_dim=16,
-              # embedding_dim=512,
-              # block_num=6,
-              # head_num=4,
-              # mlp_dim=1024)
-    # print(sum(p.numel() for p in vit.parameters()))
-    # print(vit(torch.rand(1, 3, 128, 128)).shape)
-    
 class TransUNet(nn.Module):
-    def __init__(self, num_classes=1, input_channels=3, deep_supervision=False, img_dim=256, in_channels=3, out_channels=128, head_num=4, mlp_dim=512, block_num=8, patch_dim=16, class_num=1):
+    def __init__(self,
+                 num_classes=1,
+                 input_channels=3,
+                 deep_supervision=False,
+                 img_dim=256,
+                 in_channels=3,
+                 out_channels=128,
+                 head_num=4,
+                 mlp_dim=512,
+                 block_num=8,
+                 patch_dim=16,
+                 class_num=1):
         super().__init__()
 
         in_channels = input_channels
         class_num = num_classes
 
-        self.encoder = Encoder(img_dim, in_channels, out_channels,
-                               head_num, mlp_dim, block_num, patch_dim)
+        self.encoder = TransEncoder(img_dim,
+                                    in_channels,
+                                    out_channels,
+                                    head_num,
+                                    mlp_dim,
+                                    block_num,
+                                    patch_dim)
 
-        self.decoder = Decoder(out_channels, class_num)
+        self.decoder = TransDecoder(out_channels,
+                                    class_num)
 
     def forward(self, x):
         x, x1, x2, x3 = self.encoder(x)

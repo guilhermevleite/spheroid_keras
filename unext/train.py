@@ -22,7 +22,6 @@ from metrics import iou_score
 from utils import AverageMeter, str2bool
 from archs import UNext
 
-
 ARCH_NAMES = archs.__all__
 LOSS_NAMES = losses.__all__
 LOSS_NAMES.append('BCEWithLogitsLoss')
@@ -41,7 +40,7 @@ def parse_args():
                         help='number of total epochs to run')
     parser.add_argument('-b', '--batch_size', default=16, type=int,
                         metavar='N', help='mini-batch size (default: 16)')
-    
+
     # model
     parser.add_argument('--arch', '-a', metavar='ARCH', default='UNext')
     parser.add_argument('--deep_supervision', default=False, type=str2bool)
@@ -99,6 +98,9 @@ def parse_args():
 
     parser.add_argument('--num_workers', default=4, type=int)
 
+    parser.add_argument('--device', default='cpu', type=str,
+                        help='Select between <cpu> or <cuda:0>')
+
     config = parser.parse_args()
 
     return config
@@ -112,8 +114,8 @@ def train(config, train_loader, model, criterion, optimizer):
 
     pbar = tqdm(total=len(train_loader))
     for input, target, _ in train_loader:
-        input = input.cuda()
-        target = target.cuda()
+        input = input.to(config['device'])
+        target = target.to(config['device'])
 
         # compute output
         if config['deep_supervision']:
@@ -159,8 +161,8 @@ def validate(config, val_loader, model, criterion):
     with torch.no_grad():
         pbar = tqdm(total=len(val_loader))
         for input, target, _ in val_loader:
-            input = input.cuda()
-            target = target.cuda()
+            input = input.to(config['device'])
+            target = target.to(config['device'])
 
             # compute output
             if config['deep_supervision']:
@@ -201,7 +203,7 @@ def main():
             config['name'] = '%s_%s_wDS' % (config['dataset'], config['arch'])
         else:
             config['name'] = '%s_%s_woDS' % (config['dataset'], config['arch'])
-    
+
     os.makedirs(MODELS_PATH+'/%s' % config['name'], exist_ok=True)
 
     print('-' * 20)
@@ -214,9 +216,9 @@ def main():
 
     # define loss function (criterion)
     if config['loss'] == 'BCEWithLogitsLoss':
-        criterion = nn.BCEWithLogitsLoss().cuda()
+        criterion = nn.BCEWithLogitsLoss().to(config['device'])
     else:
-        criterion = losses.__dict__[config['loss']]().cuda()
+        criterion = losses.__dict__[config['loss']]().to(config['device'])
 
     cudnn.benchmark = True
 
@@ -225,7 +227,7 @@ def main():
                                            config['input_channels'],
                                            config['deep_supervision'])
 
-    model = model.cuda()
+    model = model.to(config['device'])
 
     params = filter(lambda p: p.requires_grad, model.parameters())
     if config['optimizer'] == 'Adam':
