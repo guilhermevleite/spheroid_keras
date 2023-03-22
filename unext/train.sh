@@ -29,8 +29,10 @@ idx=0
 
 #python3 train.py --dataset busi --arch UNext --name ${idx}_unet_isic_200ep --img_ext .png --mask_ext .png --lr 0.0001 --epochs 200 --input_w 256 --input_h 256 --b 6
 
-python3 train.py --dataset isic_2018 --arch TransUNet --name ${idx}_tunet_isic_100ep --img_ext .jpg --mask_ext .png --lr 0.0001 --epochs 100 --input_w 256 --input_h 256 --b 6
+#python3 train.py --dataset isic_2018 --arch TransUNet --name ${idx}_tunet_isic_100ep --img_ext .jpg --mask_ext .png --lr 0.0001 --epochs 100 --input_w 256 --input_h 256 --b 6
 
-python3 train.py --dataset busi --arch TransUNet --name ${idx}_tunet_busi_100ep --img_ext .png --mask_ext .png --lr 0.0001 --epochs 100 --input_w 256 --input_h 256 --b 6
+#python3 train.py --dataset busi --arch TransUNet --name ${idx}_tunet_busi_100ep --img_ext .png --mask_ext .png --lr 0.0001 --epochs 100 --input_w 256 --input_h 256 --b 6
 
-python3 train.py --dataset ours_filtered --arch TransUNet --name ${idx}_tunet_ours_filtered_100ep --img_ext .png --mask_ext .png --lr 0.0001 --epochs 100 --input_w 256 --input_h 256 --b 6
+#python3 train.py --dataset ours_filtered --arch TransUNet --name ${idx}_tunet_ours_filtered_100ep --img_ext .png --mask_ext .png --lr 0.0001 --epochs 100 --input_w 256 --input_h 256 --b 6
+
+python3 train.py --dataset tiny --arch Unet --name unet_tiny_test_env --img_ext .png --mask_ext .png --lr 0.0001 --epochs 1 --input_w 256 --input_h 256 --b 2
