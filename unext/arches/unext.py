@@ -5,7 +5,7 @@ from timm.models.layers import DropPath, trunc_normal_, to_2tuple
 import math
 
 
-class UNext(nn.Module):
+class Unext(nn.Module):
     # Conv 3 + MLP 2 + shifted MLP
     def __init__(self,
                  num_classes,

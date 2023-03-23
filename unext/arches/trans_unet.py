@@ -3,7 +3,7 @@ from torch import nn
 from einops import rearrange, repeat
 
 
-class TransUNet(nn.Module):
+class TransUnet(nn.Module):
     def __init__(self,
                  num_classes=1,
                  input_channels=3,
