@@ -27,7 +27,9 @@ LOSS_NAMES.append('BCEWithLogitsLoss')
 
 
 DATASETS_PATH = '/workspace/deep_learning/datasets/segmentation'
+# DATASETS_PATH = '/raid/DATASETS/leite_datasets/datasets/segmentation'
 MODELS_PATH = '/workspace/deep_learning/experiments/models'
+# MODELS_PATH = '/raid/DATASETS/leite_datasets/experiments/models'
 
 
 def parse_args():
@@ -197,6 +199,10 @@ def validate(config, val_loader, model, criterion):
 def main():
     config = vars(parse_args())
 
+    if (torch.cuda.is_available() and config['device'] != 'cpu'):
+        torch.cuda.set_device(config['device'])
+        print('CUDA {}|{}'.format(torch.cuda.current_device(), torch.cuda.device_count()))
+
     if config['name'] is None:
         if config['deep_supervision']:
             config['name'] = '%s_%s_wDS' % (config['dataset'], config['arch'])
@@ -273,16 +279,20 @@ def main():
 
     # Torchvision augmentation
     train_transform = T.Compose([
+                        T.ToPILImage(),
                         T.RandomRotation(90),
                         T.Resize((config['input_h'], config['input_w'])),
+                        T.ToTensor(),
                         T.Normalize(mean=(0.485, 0.456, 0.406),
                                     std=(0.229, 0.224, 0.225))
                         ])
     train_transform = None
 
     val_transform = T.Compose([
+                        T.ToPILImage(),
                         T.RandomRotation(90),
                         T.Resize((config['input_h'], config['input_w'])),
+                        T.ToTensor(),
                         T.Normalize(mean=(0.485, 0.456, 0.406),
                                     std=(0.229, 0.224, 0.225))
                         ])
