@@ -1,30 +1,26 @@
 import argparse
 import os
-from glob import glob
-
 import cv2
+from glob import glob
+import yaml
+
 import torch
 import torch.backends.cudnn as cudnn
-import yaml
+
 from albumentations.augmentations import transforms
 from albumentations.core.composition import Compose
+from albumentations import Resize
+
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
-import archs
 from dataset import Dataset
 from metrics import iou_score
 from utils import AverageMeter
-from albumentations import Resize
-# import time
+import archs
+
+from settings import DATASETS_PATH, MODELS_PATH, OUTPUT_PATH
 # from archs import UNext
-
-from .settings import DATASETS_PATH, MODELS_PATH
-
-
-DATASETS_PATH = '/workspace/deep_learning/datasets/segmentation'
-MODELS_PATH = '/workspace/deep_learning/experiments/models'
-OUTPUTS_PATH = '/workspace/deep_learning/experiments/outputs'
 
 
 def parse_args():
@@ -32,6 +28,10 @@ def parse_args():
 
     parser.add_argument('--name', default=None,
                         help='model name')
+    parser.add_argument('--dataset', default=None,
+                        help='dataset name')
+    parser.add_argument('--out', default=None,
+                        help='output folder, only use if diferent than --name')
 
     args = parser.parse_args()
 
@@ -41,33 +41,29 @@ def parse_args():
 def main():
     args = parse_args()
 
-    with open(MODELS_PATH+'/%s/config.yml' % args.name, 'r') as f:
+    with open(MODELS_PATH + '/%s/config.yml' % args.name, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-
-    print('-'*20)
-    for key in config.keys():
-        print('%s: %s' % (key, str(config[key])))
-    print('-'*20)
 
     cudnn.benchmark = True
 
-    print("=> creating model %s" % config['arch'])
     model = archs.__dict__[config['arch']](config['num_classes'],
                                            config['input_channels'],
                                            config['deep_supervision'])
-
     model = model.cuda()
 
-    # Data loading code
+    print('DATASET', args.dataset)
     img_ids = glob(os.path.join(DATASETS_PATH,
-                                config['dataset'],
+                                args.dataset,
                                 'images',
                                 '*' + config['img_ext']))
     img_ids = [os.path.splitext(os.path.basename(p))[0] for p in img_ids]
 
-    _, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
+    # _, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
+    # print('BEFORE', len(val_img_ids))
+    val_img_ids = img_ids
+    print('AFTER', len(val_img_ids))
 
-    model.load_state_dict(torch.load(MODELS_PATH+'/%s/model.pth' %
+    model.load_state_dict(torch.load(MODELS_PATH + '/%s/model.pth' %
                                      config['name']))
     model.eval()
 
@@ -78,8 +74,8 @@ def main():
 
     val_dataset = Dataset(
         img_ids=val_img_ids,
-        img_dir=os.path.join(DATASETS_PATH, config['dataset'], 'images'),
-        mask_dir=os.path.join(DATASETS_PATH, config['dataset'], 'masks'),
+        img_dir=os.path.join(DATASETS_PATH, args.dataset, 'images'),
+        mask_dir=os.path.join(DATASETS_PATH, args.dataset, 'masks'),
         img_ext=config['img_ext'],
         mask_ext=config['mask_ext'],
         num_classes=config['num_classes'],
@@ -96,9 +92,19 @@ def main():
     # gput = AverageMeter()
     # cput = AverageMeter()
 
-    # count = 0
+    if args.out != None:
+        config['name'] = args.out
+
     for c in range(config['num_classes']):
-        os.makedirs(os.path.join(OUTPUTS_PATH, config['name'], str(c)), exist_ok=True)
+        os.makedirs(os.path.join(OUTPUT_PATH,
+                                 config['name'],
+                                 str(c)), exist_ok=True)
+
+        os.makedirs(os.path.join(OUTPUT_PATH,
+                                 config['name'],
+                                 str(c),
+                                 'metric'), exist_ok=True)
+
     with torch.no_grad():
         for input, target, meta in tqdm(val_loader, total=len(val_loader)):
             input = input.cuda()
@@ -117,7 +123,17 @@ def main():
 
             for i in range(len(output)):
                 for c in range(config['num_classes']):
-                    cv2.imwrite(os.path.join(OUTPUTS_PATH, config['name'], str(c), meta['img_id'][i] + '.jpg'),
+                    cv2.imwrite(os.path.join(OUTPUT_PATH,
+                                             config['name'],
+                                             str(c),
+                                             'metric',
+                                             '{:.2f}_'.format(dice) + meta['img_id'][i] + '.png'),
+                                (output[i, c] * 255).astype('uint8'))
+
+                    cv2.imwrite(os.path.join(OUTPUT_PATH,
+                                             config['name'],
+                                             str(c),
+                                             meta['img_id'][i] + '.png'),
                                 (output[i, c] * 255).astype('uint8'))
 
     print('IoU: %.4f' % iou_avg_meter.avg)

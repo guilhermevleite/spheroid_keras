@@ -9,27 +9,27 @@ import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim as optim
 import yaml
-from albumentations.augmentations import transforms
-from albumentations.core.composition import Compose, OneOf
+import torchvision.transforms as T
+# from albumentations.augmentations import transforms
+# from albumentations.core.composition import Compose, OneOf
 from sklearn.model_selection import train_test_split
 from torch.optim import lr_scheduler
 from tqdm import tqdm
-from albumentations import RandomRotate90,Resize
+# from albumentations import RandomRotate90, Resize
 import archs
 import losses
 from dataset import Dataset
 from metrics import iou_score
 from utils import AverageMeter, str2bool
-from archs import UNext
 
-
-ARCH_NAMES = archs.__all__
 LOSS_NAMES = losses.__all__
 LOSS_NAMES.append('BCEWithLogitsLoss')
 
 
 DATASETS_PATH = '/workspace/deep_learning/datasets/segmentation'
+# DATASETS_PATH = '/raid/DATASETS/leite_datasets/datasets/segmentation'
 MODELS_PATH = '/workspace/deep_learning/experiments/models'
+# MODELS_PATH = '/raid/DATASETS/leite_datasets/experiments/models'
 
 
 def parse_args():
@@ -41,7 +41,7 @@ def parse_args():
                         help='number of total epochs to run')
     parser.add_argument('-b', '--batch_size', default=16, type=int,
                         metavar='N', help='mini-batch size (default: 16)')
-    
+
     # model
     parser.add_argument('--arch', '-a', metavar='ARCH', default='UNext')
     parser.add_argument('--deep_supervision', default=False, type=str2bool)
@@ -53,14 +53,14 @@ def parse_args():
                         help='image width')
     parser.add_argument('--input_h', default=256, type=int,
                         help='image height')
-    
+
     # loss
     parser.add_argument('--loss', default='BCEDiceLoss',
                         choices=LOSS_NAMES,
                         help='loss: ' +
                         ' | '.join(LOSS_NAMES) +
                         ' (default: BCEDiceLoss)')
-    
+
     # dataset
     parser.add_argument('--dataset', default='isic',
                         help='dataset name')
@@ -99,11 +99,14 @@ def parse_args():
 
     parser.add_argument('--num_workers', default=4, type=int)
 
+    parser.add_argument('--device', default='cpu', type=str,
+                        help='Select between <cpu> or <cuda:0>')
+
     config = parser.parse_args()
 
     return config
 
-# args = parser.parse_args()
+
 def train(config, train_loader, model, criterion, optimizer):
     avg_meters = {'loss': AverageMeter(),
                   'iou': AverageMeter()}
@@ -113,8 +116,8 @@ def train(config, train_loader, model, criterion, optimizer):
 
     pbar = tqdm(total=len(train_loader))
     for input, target, _ in train_loader:
-        input = input.cuda()
-        target = target.cuda()
+        input = input.to(config['device'])
+        target = target.to(config['device'])
 
         # compute output
         if config['deep_supervision']:
@@ -160,8 +163,8 @@ def validate(config, val_loader, model, criterion):
     with torch.no_grad():
         pbar = tqdm(total=len(val_loader))
         for input, target, _ in val_loader:
-            input = input.cuda()
-            target = target.cuda()
+            input = input.to(config['device'])
+            target = target.to(config['device'])
 
             # compute output
             if config['deep_supervision']:
@@ -197,12 +200,16 @@ def validate(config, val_loader, model, criterion):
 def main():
     config = vars(parse_args())
 
+    if (torch.cuda.is_available() and config['device'] != 'cpu'):
+        torch.cuda.set_device(config['device'])
+        print('CUDA {}|{}'.format(torch.cuda.current_device(), torch.cuda.device_count()))
+
     if config['name'] is None:
         if config['deep_supervision']:
             config['name'] = '%s_%s_wDS' % (config['dataset'], config['arch'])
         else:
             config['name'] = '%s_%s_woDS' % (config['dataset'], config['arch'])
-    
+
     os.makedirs(MODELS_PATH+'/%s' % config['name'], exist_ok=True)
 
     print('-' * 20)
@@ -215,9 +222,9 @@ def main():
 
     # define loss function (criterion)
     if config['loss'] == 'BCEWithLogitsLoss':
-        criterion = nn.BCEWithLogitsLoss().cuda()
+        criterion = nn.BCEWithLogitsLoss().to(config['device'])
     else:
-        criterion = losses.__dict__[config['loss']]().cuda()
+        criterion = losses.__dict__[config['loss']]().to(config['device'])
 
     cudnn.benchmark = True
 
@@ -226,7 +233,7 @@ def main():
             config['input_channels'],
             config['deep_supervision'])
 
-    model = model.cuda()
+    model = model.to(config['device'])
 
     params = filter(lambda p: p.requires_grad, model.parameters())
     if config['optimizer'] == 'Adam':
@@ -258,17 +265,39 @@ def main():
 
     train_img_ids, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
 
-    train_transform = Compose([
-        RandomRotate90(),
-        # transforms.Flip(),
-        Resize(config['input_h'], config['input_w']),
-        transforms.Normalize(),
-    ])
+    # Albumentation augmentation
+    # train_transform = Compose([
+    #     RandomRotate90(),
+    #     # transforms.Flip(),
+    #     Resize(config['input_h'], config['input_w']),
+    #     transforms.Normalize(),
+    # ])
 
-    val_transform = Compose([
-        Resize(config['input_h'], config['input_w']),
-        transforms.Normalize(),
-    ])
+    # val_transform = Compose([
+    #     Resize(config['input_h'], config['input_w']),
+    #     transforms.Normalize(),
+    # ])
+
+    # Torchvision augmentation
+    train_transform = T.Compose([
+                        T.ToPILImage(),
+                        T.RandomRotation(90),
+                        T.Resize((config['input_h'], config['input_w'])),
+                        T.ToTensor(),
+                        T.Normalize(mean=(0.485, 0.456, 0.406),
+                                    std=(0.229, 0.224, 0.225))
+                        ])
+    train_transform = None
+
+    val_transform = T.Compose([
+                        T.ToPILImage(),
+                        T.RandomRotation(90),
+                        T.Resize((config['input_h'], config['input_w'])),
+                        T.ToTensor(),
+                        T.Normalize(mean=(0.485, 0.456, 0.406),
+                                    std=(0.229, 0.224, 0.225))
+                        ])
+    val_transform = None
 
     train_dataset = Dataset(
         img_ids=train_img_ids,

@@ -7,7 +7,11 @@ import torch.utils.data
 
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, img_ids, img_dir, mask_dir, img_ext, mask_ext, num_classes, transform=None):
+    def __init__(self,
+                 img_ids,
+                 img_dir,
+                 mask_dir,
+                 img_ext, mask_ext, num_classes, transform=None):
         """
         Args:
             img_ids (list): Image ids.
@@ -17,7 +21,7 @@ class Dataset(torch.utils.data.Dataset):
             mask_ext (str): Mask file extension.
             num_classes (int): Number of classes.
             transform (Compose, optional): Compose transforms of albumentations. Defaults to None.
-        
+
         Note:
             Make sure to put the files as the following structure:
             <dataset name>
@@ -54,23 +58,30 @@ class Dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         img_id = self.img_ids[idx]
-        
+
         img = cv2.imread(os.path.join(self.img_dir, img_id + self.img_ext))
+        img = cv2.resize(img, (256, 256))
 
         mask = []
         for i in range(self.num_classes):
-            mask.append(cv2.imread(os.path.join(self.mask_dir, str(i),
-                        img_id + self.mask_ext), cv2.IMREAD_GRAYSCALE)[..., None])
+            m = cv2.imread(os.path.join(self.mask_dir, str(i), img_id + self.mask_ext), cv2.IMREAD_GRAYSCALE)
+            m = cv2.resize(m, (256, 256))
+            mask.append(m[..., None])
         mask = np.dstack(mask)
 
         if self.transform is not None:
-            augmented = self.transform(image=img, mask=mask)
-            img = augmented['image']
-            mask = augmented['mask']
-        
+            # augmented = self.transform(image=img, mask=mask)
+            # img = augmented['image']
+            # mask = augmented['mask']
+            img = self.transform(img)
+            mask = self.transform(mask)
+
+
         img = img.astype('float32') / 255
         img = img.transpose(2, 0, 1)
         mask = mask.astype('float32') / 255
         mask = mask.transpose(2, 0, 1)
-        
+
+        print('CINCO', img.shape, mask.shape)
+
         return img, mask, {'img_id': img_id}
