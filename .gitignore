@@ -132,3 +132,4 @@ dmypy.json
 
 # Personal
 **.png
+unext/models/*

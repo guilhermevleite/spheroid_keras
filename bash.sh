@@ -1,1 +1,1 @@
-docker run -it --name=bash --gpus all --rm -v /home/leite/Workspace:/workspace -w /workspace/spheroid_keras -u $(id -u):$(id -g) phd_torch bash
+docker run -it --name=bash --gpus all --rm -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro -v /home/leite/workspace:/workspace -w /workspace/spheroid_segmentation/unext -u $(id -u):$(id -g) phd_torch:1.2 bash

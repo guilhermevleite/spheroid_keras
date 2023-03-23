@@ -1,8 +1,10 @@
 import argparse
 import torch.nn as nn
 
+
 class qkv_transform(nn.Conv1d):
     """Conv1d for qkv_transform"""
+
 
 def str2bool(v):
     if v.lower() in ['true', 1]:
