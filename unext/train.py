@@ -9,12 +9,13 @@ import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim as optim
 import yaml
-from albumentations.augmentations import transforms
-from albumentations.core.composition import Compose, OneOf
+import torchvision.transforms as T
+# from albumentations.augmentations import transforms
+# from albumentations.core.composition import Compose, OneOf
 from sklearn.model_selection import train_test_split
 from torch.optim import lr_scheduler
 from tqdm import tqdm
-from albumentations import RandomRotate90, Resize
+# from albumentations import RandomRotate90, Resize
 import archs
 import losses
 from dataset import Dataset
@@ -50,14 +51,14 @@ def parse_args():
                         help='image width')
     parser.add_argument('--input_h', default=256, type=int,
                         help='image height')
-    
+
     # loss
     parser.add_argument('--loss', default='BCEDiceLoss',
                         choices=LOSS_NAMES,
                         help='loss: ' +
                         ' | '.join(LOSS_NAMES) +
                         ' (default: BCEDiceLoss)')
-    
+
     # dataset
     parser.add_argument('--dataset', default='isic',
                         help='dataset name')
@@ -103,7 +104,7 @@ def parse_args():
 
     return config
 
-# args = parser.parse_args()
+
 def train(config, train_loader, model, criterion, optimizer):
     avg_meters = {'loss': AverageMeter(),
                   'iou': AverageMeter()}
@@ -257,17 +258,35 @@ def main():
 
     train_img_ids, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
 
-    train_transform = Compose([
-        RandomRotate90(),
-        # transforms.Flip(),
-        Resize(config['input_h'], config['input_w']),
-        transforms.Normalize(),
-    ])
+    # Albumentation augmentation
+    # train_transform = Compose([
+    #     RandomRotate90(),
+    #     # transforms.Flip(),
+    #     Resize(config['input_h'], config['input_w']),
+    #     transforms.Normalize(),
+    # ])
 
-    val_transform = Compose([
-        Resize(config['input_h'], config['input_w']),
-        transforms.Normalize(),
-    ])
+    # val_transform = Compose([
+    #     Resize(config['input_h'], config['input_w']),
+    #     transforms.Normalize(),
+    # ])
+
+    # Torchvision augmentation
+    train_transform = T.Compose([
+                        T.RandomRotation(90),
+                        T.Resize((config['input_h'], config['input_w'])),
+                        T.Normalize(mean=(0.485, 0.456, 0.406),
+                                    std=(0.229, 0.224, 0.225))
+                        ])
+    train_transform = None
+
+    val_transform = T.Compose([
+                        T.RandomRotation(90),
+                        T.Resize((config['input_h'], config['input_w'])),
+                        T.Normalize(mean=(0.485, 0.456, 0.406),
+                                    std=(0.229, 0.224, 0.225))
+                        ])
+    val_transform = None
 
     train_dataset = Dataset(
         img_ids=train_img_ids,
