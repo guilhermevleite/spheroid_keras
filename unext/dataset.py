@@ -76,12 +76,11 @@ class Dataset(torch.utils.data.Dataset):
             img = self.transform(img)
             mask = self.transform(mask)
 
-
         img = img.astype('float32') / 255
         img = img.transpose(2, 0, 1)
         mask = mask.astype('float32') / 255
         mask = mask.transpose(2, 0, 1)
 
-        print('CINCO', img.shape, mask.shape)
+        # print('CINCO', img.shape, mask.shape)
 
         return img, mask, {'img_id': img_id}

@@ -7,12 +7,12 @@ class MultiResUnet(nn.Module):
     MultiResUNet
 
     Arguments:
-        input_channels {int} -- number of channels in image
-        num_classes {int} -- number of segmentation classes
-        alpha {float} -- alpha hyperparameter (default: 1.67)
+    input_channels {int} -- number of channels in image
+    num_classes {int} -- number of segmentation classes
+    alpha {float} -- alpha hyperparameter (default: 1.67)
 
     Returns:
-        [keras model] -- MultiResUNet model
+    [keras model] -- MultiResUNet model
     '''
 
     def __init__(self,
@@ -124,16 +124,24 @@ class MultiResUnet(nn.Module):
 
         x_multires5 = self.multiresblock5(x_pool4)
 
-        up6 = torch.cat([self.upsample6(x_multires5), x_multires4], axis=1)
+        up6 = torch.cat([self.upsample6(x_multires5),
+                         x_multires4],
+                        axis=1)
         x_multires6 = self.multiresblock6(up6)
 
-        up7 = torch.cat([self.upsample7(x_multires6), x_multires3], axis=1)
+        up7 = torch.cat([self.upsample7(x_multires6),
+                         x_multires3],
+                        axis=1)
         x_multires7 = self.multiresblock7(up7)
 
-        up8 = torch.cat([self.upsample8(x_multires7), x_multires2], axis=1)
+        up8 = torch.cat([self.upsample8(x_multires7),
+                         x_multires2],
+                        axis=1)
         x_multires8 = self.multiresblock8(up8)
 
-        up9 = torch.cat([self.upsample9(x_multires8), x_multires1], axis=1)
+        up9 = torch.cat([self.upsample9(x_multires8),
+                         x_multires1],
+                        axis=1)
         x_multires9 = self.multiresblock9(up9)
 
         out = self.conv_final(x_multires9)
@@ -213,68 +221,91 @@ class Respath(nn.Module):
 
     '''
 
-	def __init__(self, num_in_filters, num_out_filters, respath_length):
-	
-		super().__init__()
+    def __init__(self, num_in_filters, num_out_filters, respath_length):
 
-		self.respath_length = respath_length
-		self.shortcuts = torch.nn.ModuleList([])
-		self.convs = torch.nn.ModuleList([])
-		self.bns = torch.nn.ModuleList([])
+        super().__init__()
 
-		for i in range(self.respath_length):
-			if(i==0):
-				self.shortcuts.append(Conv2d_batchnorm(num_in_filters, num_out_filters, kernel_size = (1,1), activation='None'))
-				self.convs.append(Conv2d_batchnorm(num_in_filters, num_out_filters, kernel_size = (3,3),activation='relu'))
+        self.respath_length = respath_length
+        self.shortcuts = torch.nn.ModuleList([])
+        self.convs = torch.nn.ModuleList([])
+        self.bns = torch.nn.ModuleList([])
 
-				
-			else:
-				self.shortcuts.append(Conv2d_batchnorm(num_out_filters, num_out_filters, kernel_size = (1,1), activation='None'))
-				self.convs.append(Conv2d_batchnorm(num_out_filters, num_out_filters, kernel_size = (3,3), activation='relu'))
+        for i in range(self.respath_length):
+            if (i == 0):
+                self.shortcuts.append(Conv2d_batchnorm(num_in_filters,
+                                                       num_out_filters,
+                                                       kernel_size=(1, 1),
+                                                       activation='None'))
+                self.convs.append(Conv2d_batchnorm(num_in_filters,
+                                                   num_out_filters,
+                                                   kernel_size=(3, 3),
+                                                   activation='relu'))
 
-			self.bns.append(torch.nn.BatchNorm2d(num_out_filters))
-		
-	
-	def forward(self,x):
+            else:
+                self.shortcuts.append(Conv2d_batchnorm(num_out_filters,
+                                                       num_out_filters,
+                                                       kernel_size=(1, 1),
+                                                       activation='None'))
 
-		for i in range(self.respath_length):
+                self.convs.append(Conv2d_batchnorm(num_out_filters,
+                                                   num_out_filters,
+                                                   kernel_size=(3, 3),
+                                                   activation='relu'))
 
-			shortcut = self.shortcuts[i](x)
+            self.bns.append(torch.nn.BatchNorm2d(num_out_filters))
 
-			x = self.convs[i](x)
-			x = self.bns[i](x)
-			x = torch.nn.functional.relu(x)
+    def forward(self, x):
 
-			x = x + shortcut
-			x = self.bns[i](x)
-			x = torch.nn.functional.relu(x)
+        for i in range(self.respath_length):
 
-		return x
+            shortcut = self.shortcuts[i](x)
+
+            x = self.convs[i](x)
+            x = self.bns[i](x)
+            x = torch.nn.functional.relu(x)
+
+            x = x + shortcut
+            x = self.bns[i](x)
+            x = torch.nn.functional.relu(x)
+
+        return x
 
 
 class Conv2d_batchnorm(torch.nn.Module):
-	'''
-	2D Convolutional layers
+    '''
+    2D Convolutional layers
 
-	Arguments:
-		num_in_filters {int} -- number of input filters
-		num_out_filters {int} -- number of output filters
-		kernel_size {tuple} -- size of the convolving kernel
-		stride {tuple} -- stride of the convolution (default: {(1, 1)})
-		activation {str} -- activation function (default: {'relu'})
+    Arguments:
+            num_in_filters {int} -- number of input filters
+            num_out_filters {int} -- number of output filters
+            kernel_size {tuple} -- size of the convolving kernel
+            stride {tuple} -- stride of the convolution (default: {(1, 1)})
+            activation {str} -- activation function (default: {'relu'})
 
-	'''
-	def __init__(self, num_in_filters, num_out_filters, kernel_size, stride = (1,1), activation = 'relu'):
-		super().__init__()
-		self.activation = activation
-		self.conv1 = torch.nn.Conv2d(in_channels=num_in_filters, out_channels=num_out_filters, kernel_size=kernel_size, stride=stride, padding = 'same')
-		self.batchnorm = torch.nn.BatchNorm2d(num_out_filters)
-	
-	def forward(self,x):
-		x = self.conv1(x)
-		x = self.batchnorm(x)
-		
-		if self.activation == 'relu':
-			return torch.nn.functional.relu(x)
-		else:
-			return x
+    '''
+
+    def __init__(self,
+                 num_in_filters,
+                 num_out_filters,
+                 kernel_size,
+                 stride=(1, 1),
+                 activation='relu'):
+
+        super().__init__()
+        self.activation = activation
+        self.conv1 = torch.nn.Conv2d(in_channels=num_in_filters,
+                                     out_channels=num_out_filters,
+                                     kernel_size=kernel_size,
+                                     stride=stride,
+                                     padding='same')
+
+        self.batchnorm = torch.nn.BatchNorm2d(num_out_filters)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.batchnorm(x)
+
+        if self.activation == 'relu':
+            return torch.nn.functional.relu(x)
+        else:
+            return x

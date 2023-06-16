@@ -23,6 +23,8 @@ from einops import rearrange, repeat
 from arches.trans_unet import TransUnet
 from arches.unet import Unet
 from arches.unext import Unext
+from arches.multires_2 import MultiResUnet
+from arches.unetpp import UnetPP
 
 
 # def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
@@ -540,97 +542,6 @@ from arches.unext import Unext
 #     'R50-ViT-L_16': configs.get_r50_l16_config(),
 #     'testing': configs.get_testing(),
 # }
-
-
-# class MultiHeadAttention(nn.Module):
-#     def __init__(self,
-#                  embedding_dim,
-#                  head_num):
-#         super().__init__()
-
-#         self.head_num = head_num
-#         self.dk = (embedding_dim // head_num) ** (1 / 2)
-
-#         self.qkv_layer = nn.Linear(embedding_dim,
-#                                    embedding_dim * 3,
-#                                    bias=False)
-
-#         self.out_attention = nn.Linear(embedding_dim,
-#                                        embedding_dim,
-#                                        bias=False)
-
-#     def forward(self, x, mask=None):
-#         qkv = self.qkv_layer(x)
-
-#         query, key, value = tuple(rearrange(qkv,
-#                                             'b t (d k h ) -> k b h t d ',
-#                                             k=3,
-#                                             h=self.head_num))
-#         energy = torch.einsum("... i d , ... j d -> ... i j",
-#                               query,
-#                               key) * self.dk
-
-#         if mask is not None:
-#             energy = energy.masked_fill(mask, -np.inf)
-
-#         attention = torch.softmax(energy, dim=-1)
-
-#         x = torch.einsum("... i j , ... j d -> ... i d", attention, value)
-
-#         x = rearrange(x, "b h t d -> b t (h d)")
-#         x = self.out_attention(x)
-
-#         return x
-
-
-# class MLP(nn.Module):
-#     def __init__(self,
-#                  embedding_dim,
-#                  mlp_dim):
-#         super().__init__()
-
-#         self.mlp_layers = nn.Sequential(
-#             nn.Linear(embedding_dim, mlp_dim),
-#             nn.GELU(),
-#             nn.Dropout(0.1),
-#             nn.Linear(mlp_dim, embedding_dim),
-#             nn.Dropout(0.1)
-#         )
-
-#     def forward(self, x):
-#         x = self.mlp_layers(x)
-
-#         return x
-
-
-# class TransformerEncoderBlock(nn.Module):
-#     def __init__(self,
-#                  embedding_dim,
-#                  head_num,
-#                  mlp_dim):
-#         super().__init__()
-
-#         self.multi_head_attention = MultiHeadAttention(embedding_dim, head_num)
-#         self.mlp = MLP(embedding_dim, mlp_dim)
-
-#         self.layer_norm1 = nn.LayerNorm(embedding_dim)
-#         self.layer_norm2 = nn.LayerNorm(embedding_dim)
-
-#         self.dropout = nn.Dropout(0.1)
-
-#     def forward(self, x):
-#         _x = self.multi_head_attention(x)
-#         _x = self.dropout(_x)
-#         x = x + _x
-#         x = self.layer_norm1(x)
-
-#         _x = self.mlp(x)
-#         x = x + _x
-#         x = self.layer_norm2(x)
-
-#         return x
-
-
 
 
 # if __name__ == '__main__':
