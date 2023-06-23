@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 import os
 from collections import OrderedDict
 from glob import glob
@@ -210,7 +211,9 @@ def main():
         else:
             config['name'] = '%s_%s_woDS' % (config['dataset'], config['arch'])
 
-    os.makedirs(MODELS_PATH+'/%s' % config['name'], exist_ok=True)
+    p = Path(MODELS_PATH) / config['name']
+    p.mkdir(parents=True, exist_ok=True)
+    # os.makedirs(MODELS_PATH+'/%s' % config['name'], exist_ok=True)
 
     print('-' * 20)
     for key in config:
