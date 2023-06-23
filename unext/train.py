@@ -28,9 +28,7 @@ LOSS_NAMES.append('BCEWithLogitsLoss')
 
 
 DATASETS_PATH = '/workspace/deep_learning/datasets/segmentation'
-# DATASETS_PATH = '/raid/DATASETS/leite_datasets/datasets/segmentation'
 MODELS_PATH = '/workspace/deep_learning/experiments/models'
-# MODELS_PATH = '/raid/DATASETS/leite_datasets/experiments/models'
 
 
 def parse_args():
@@ -213,7 +211,6 @@ def main():
 
     p = Path(MODELS_PATH) / config['name']
     p.mkdir(parents=True, exist_ok=True)
-    # os.makedirs(MODELS_PATH+'/%s' % config['name'], exist_ok=True)
 
     print('-' * 20)
     for key in config:
@@ -357,8 +354,12 @@ def main():
         elif config['scheduler'] == 'ReduceLROnPlateau':
             scheduler.step(val_log['loss'])
 
-        print('loss %.4f - iou %.4f - val_loss %.4f - val_iou %.4f'
-              % (train_log['loss'], train_log['iou'], val_log['loss'], val_log['iou']))
+        epoch_str = (f"{config['name']}:\n"
+                f"loss {train_log['loss']:.4f} - "
+                f"iou {train_log['iou']:.4f} - "
+                f"val_loss {val_log['loss']:.4f} - "
+                f"val_iou {val_log['iou']:.4f}")
+        print(epoch_str)
 
         log['epoch'].append(epoch)
         log['lr'].append(config['lr'])
