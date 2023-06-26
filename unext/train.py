@@ -201,7 +201,7 @@ def main():
 
     if (torch.cuda.is_available() and config['device'] != 'cpu'):
         torch.cuda.set_device(config['device'])
-        print('CUDA {}|{}'.format(torch.cuda.current_device(), torch.cuda.device_count()))
+        print(f'CUDA {torch.cuda.current_device()} of {torch.cuda.device_count()}')
 
     if config['name'] is None:
         if config['deep_supervision']:
@@ -214,7 +214,7 @@ def main():
 
     print('-' * 20)
     for key in config:
-        print('%s: %s' % (key, config[key]))
+        print(f"{key}: {config[key]}")
     print('-' * 20)
 
     with open(MODELS_PATH+'/%s/config.yml' % config['name'], 'w') as f:
