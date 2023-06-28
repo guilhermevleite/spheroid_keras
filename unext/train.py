@@ -209,7 +209,10 @@ def main():
         else:
             config['name'] = '%s_%s_woDS' % (config['dataset'], config['arch'])
 
-    p = Path(MODELS_PATH) / config['name']
+    exp_name = f"{config['name']}_{config['arch']}-" \
+               f"ep{config['epochs']}_" \
+               f"ba{config['batch_size']}"
+    p = Path(MODELS_PATH) / exp_name
     p.mkdir(parents=True, exist_ok=True)
 
     print('-' * 20)
@@ -217,7 +220,8 @@ def main():
         print(f"{key}: {config[key]}")
     print('-' * 20)
 
-    with open(MODELS_PATH+'/%s/config.yml' % config['name'], 'w') as f:
+    # with open(MODELS_PATH+'/%s/config.yml' % config['name'], 'w') as f:
+    with open(p / "config.yml", 'w') as f:
         yaml.dump(config, f)
 
     # define loss function (criterion)
@@ -230,8 +234,8 @@ def main():
 
     # create model
     model = archs.__dict__[config['arch']](config['num_classes'],
-            config['input_channels'],
-            config['deep_supervision'])
+                                           config['input_channels'],
+                                           config['deep_supervision'])
 
     model = model.to(config['device'])
 
@@ -240,30 +244,44 @@ def main():
         optimizer = optim.Adam(
             params, lr=config['lr'], weight_decay=config['weight_decay'])
     elif config['optimizer'] == 'SGD':
-        optimizer = optim.SGD(params, lr=config['lr'], momentum=config['momentum'],
-                              nesterov=config['nesterov'], weight_decay=config['weight_decay'])
+        optimizer = optim.SGD(params,
+                              lr=config['lr'],
+                              momentum=config['momentum'],
+                              nesterov=config['nesterov'],
+                              weight_decay=config['weight_decay'])
     else:
         raise NotImplementedError
 
     if config['scheduler'] == 'CosineAnnealingLR':
-        scheduler = lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max=config['epochs'], eta_min=config['min_lr'])
+        scheduler = lr_scheduler.CosineAnnealingLR(optimizer,
+                                                   T_max=config['epochs'],
+                                                   eta_min=config['min_lr'])
     elif config['scheduler'] == 'ReduceLROnPlateau':
-        scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor=config['factor'], patience=config['patience'],
-                                                   verbose=1, min_lr=config['min_lr'])
+        scheduler = lr_scheduler.ReduceLROnPlateau(optimizer,
+                                                   factor=config['factor'],
+                                                   patience=config['patience'],
+                                                   verbose=1,
+                                                   min_lr=config['min_lr'])
     elif config['scheduler'] == 'MultiStepLR':
-        scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[int(e) for e in config['milestones'].split(',')], gamma=config['gamma'])
+        scheduler = lr_scheduler.MultiStepLR(optimizer,
+                                             milestones=[int(e) for e in ['milestones'].split(',')],
+                                             gamma=config['gamma'])
     elif config['scheduler'] == 'ConstantLR':
         scheduler = None
     else:
         raise NotImplementedError
 
     # Data loading code
-    img_ids = glob(os.path.join(DATASETS_PATH, config['dataset'], 'images', '*' + config['img_ext']))
+    img_ids = glob(os.path.join(DATASETS_PATH,
+                                config['dataset'],
+                                'images',
+                                '*' + config['img_ext']))
     print(len(img_ids))
     img_ids = [os.path.splitext(os.path.basename(p))[0] for p in img_ids]
 
-    train_img_ids, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
+    train_img_ids, val_img_ids = train_test_split(img_ids,
+                                                  test_size=0.2,
+                                                  random_state=41)
 
     # Albumentation augmentation
     # train_transform = Compose([
@@ -342,7 +360,8 @@ def main():
     best_iou = 0
     trigger = 0
     for epoch in range(config['epochs']):
-        print('Epoch [%d/%d]' % (epoch, config['epochs']))
+        print(f"Epoch [{epoch}|{config['epochs']}]")
+        # print('Epoch [%d/%d]' % (epoch, config['epochs']))
 
         # train for one epoch
         train_log = train(config, train_loader, model, criterion, optimizer)
@@ -355,10 +374,10 @@ def main():
             scheduler.step(val_log['loss'])
 
         epoch_str = (f"{config['name']}:\n"
-                f"loss {train_log['loss']:.4f} - "
-                f"iou {train_log['iou']:.4f} - "
-                f"val_loss {val_log['loss']:.4f} - "
-                f"val_iou {val_log['iou']:.4f}")
+                     f"loss {train_log['loss']:.4f} - "
+                     f"iou {train_log['iou']:.4f} - "
+                     f"val_loss {val_log['loss']:.4f} - "
+                     f"val_iou {val_log['iou']:.4f}")
         print(epoch_str)
 
         log['epoch'].append(epoch)
