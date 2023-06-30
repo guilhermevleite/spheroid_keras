@@ -388,14 +388,15 @@ def main():
         log['val_iou'].append(val_log['iou'])
         log['val_dice'].append(val_log['dice'])
 
-        pd.DataFrame(log).to_csv(MODELS_PATH+'/%s/log.csv' %
-                                 config['name'], index=False)
+        pd.DataFrame(log).to_csv(f"{MODELS_PATH}/{exp_name}/log.csv", index=False)
+        # pd.DataFrame(log).to_csv(MODELS_PATH+'/%s/log.csv' %
+                                 # config['name'], index=False)
 
         trigger += 1
 
         if val_log['iou'] > best_iou:
             torch.save(model.state_dict(), MODELS_PATH+'/%s/model.pth' %
-                       config['name'])
+                       exp_name)
             best_iou = val_log['iou']
             print("=> saved best model")
             trigger = 0
