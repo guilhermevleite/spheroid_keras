@@ -217,6 +217,10 @@ def main():
                f"{config['name']}_{config['arch']}-" \
                f"ep{config['epochs']}_" \
                f"ba{config['batch_size']}"
+
+    if(config['early_stopping'] != -1):
+        exp_name += f"_es{config['early_stopping']}"
+
     p = Path(MODELS_PATH) / exp_name
     p.mkdir(parents=True, exist_ok=True)
 
@@ -381,7 +385,7 @@ def main():
         elif config['scheduler'] == 'ReduceLROnPlateau':
             scheduler.step(val_log['loss'])
 
-        epoch_str = (f"{config['name']}:\n"
+        epoch_str = (f"{exp_name}:\n"
                      f"loss {train_log['loss']:.4f} - "
                      f"iou {train_log['iou']:.4f} - "
                      f"val_loss {val_log['loss']:.4f} - "
