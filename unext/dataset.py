@@ -11,6 +11,7 @@ class Dataset(torch.utils.data.Dataset):
                  img_ids,
                  img_dir,
                  mask_dir,
+                 img_size,  # TODO Delete after fixing transforms
                  img_ext, mask_ext, num_classes, transform=None):
         """
         Args:
@@ -48,6 +49,7 @@ class Dataset(torch.utils.data.Dataset):
         self.img_ids = img_ids
         self.img_dir = img_dir
         self.mask_dir = mask_dir
+        self.img_size = img_size  # TODO Delete after fixing transforms
         self.img_ext = img_ext
         self.mask_ext = mask_ext
         self.num_classes = num_classes
@@ -60,12 +62,12 @@ class Dataset(torch.utils.data.Dataset):
         img_id = self.img_ids[idx]
 
         img = cv2.imread(os.path.join(self.img_dir, img_id + self.img_ext))
-        img = cv2.resize(img, (256, 256))
+        img = cv2.resize(img, (self.img_size, self.img_size))
 
         mask = []
         for i in range(self.num_classes):
             m = cv2.imread(os.path.join(self.mask_dir, str(i), img_id + self.mask_ext), cv2.IMREAD_GRAYSCALE)
-            m = cv2.resize(m, (256, 256))
+            m = cv2.resize(m, (self.img_size, self.img_size))
             mask.append(m[..., None])
         mask = np.dstack(mask)
 
@@ -81,6 +83,6 @@ class Dataset(torch.utils.data.Dataset):
         mask = mask.astype('float32') / 255
         mask = mask.transpose(2, 0, 1)
 
-        # print('CINCO', img.shape, mask.shape)
+        print(f"TODO Fix Transforms {img.shape, mask.shape}")
 
         return img, mask, {'img_id': img_id}

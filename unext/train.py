@@ -3,7 +3,9 @@ from pathlib import Path
 import os
 from collections import OrderedDict
 from glob import glob
+import datetime
 
+import numpy as np
 import pandas as pd
 import torch
 import torch.backends.cudnn as cudnn
@@ -209,7 +211,10 @@ def main():
         else:
             config['name'] = '%s_%s_woDS' % (config['dataset'], config['arch'])
 
-    exp_name = f"{config['name']}_{config['arch']}-" \
+    timestamp = datetime.datetime.now()
+    exp_name = f"{timestamp.year}-{timestamp.month}-{timestamp.day}-" \
+               f"{timestamp.hour}:{timestamp.minute}_" \
+               f"{config['name']}_{config['arch']}-" \
                f"ep{config['epochs']}_" \
                f"ba{config['batch_size']}"
     p = Path(MODELS_PATH) / exp_name
@@ -233,9 +238,9 @@ def main():
     cudnn.benchmark = True
 
     # create model
-    model = archs.__dict__[config['arch']](config['num_classes'],
-                                           config['input_channels'],
-                                           config['deep_supervision'])
+    model = archs.__dict__[config['arch']](num_classes=config['num_classes'],
+                                           input_channels=config['input_channels'],
+                                           deep_supervision=config['deep_supervision'])
 
     model = model.to(config['device'])
 
@@ -305,7 +310,7 @@ def main():
                         T.Normalize(mean=(0.485, 0.456, 0.406),
                                     std=(0.229, 0.224, 0.225))
                         ])
-    train_transform = None
+    train_transform = None  # TODO Fix transforms
 
     val_transform = T.Compose([
                         T.ToPILImage(),
@@ -315,20 +320,23 @@ def main():
                         T.Normalize(mean=(0.485, 0.456, 0.406),
                                     std=(0.229, 0.224, 0.225))
                         ])
-    val_transform = None
+    val_transform = None  # TODO Fix transforms
 
     train_dataset = Dataset(
         img_ids=train_img_ids,
         img_dir=os.path.join(DATASETS_PATH, config['dataset'], 'images'),
         mask_dir=os.path.join(DATASETS_PATH, config['dataset'], 'masks'),
+        img_size=config['input_h'], # TODO Delete this after fixing transforms
         img_ext=config['img_ext'],
         mask_ext=config['mask_ext'],
         num_classes=config['num_classes'],
         transform=train_transform)
+
     val_dataset = Dataset(
         img_ids=val_img_ids,
         img_dir=os.path.join(DATASETS_PATH, config['dataset'], 'images'),
         mask_dir=os.path.join(DATASETS_PATH, config['dataset'], 'masks'),
+        img_size=config['input_h'], # TODO Delete this after fixing transforms
         img_ext=config['img_ext'],
         mask_ext=config['mask_ext'],
         num_classes=config['num_classes'],
