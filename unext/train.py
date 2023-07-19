@@ -120,6 +120,20 @@ def train(config, train_loader, model, criterion, optimizer):
         input = input.to(config['device'])
         target = target.to(config['device'])
 
+        print(f'DATASET LOADER\n\t{input.shape} {input.size()} {type(input)}')
+        input = torch.unsqueeze(input, 0)
+        dummy = torch.zeros((255, 2,3,256,256))
+        print(dummy.shape, dummy.size())
+        input = torch.cat([input, dummy])
+
+        dummy = torch.zeros((256,2,1,256,256))
+        input = torch.cat([input, dummy], dim=2)
+        input = torch.permute(input, (1,2,0,3,4))
+        #torch.unsqueeze(input, 1)
+        # input = torch.unsqueeze(input, dim=256)
+        #input = input[:, 256, :, :]
+        print(f'ENVIOU\n\t{input.shape} {input.size()} {type(input)}')
+
         # compute output
         if config['deep_supervision']:
             outputs = model(input)
@@ -166,6 +180,8 @@ def validate(config, val_loader, model, criterion):
         for input, target, _ in val_loader:
             input = input.to(config['device'])
             target = target.to(config['device'])
+
+            print('TODO GOTTA CHANGE VALIDATE INPUT TOO')
 
             # compute output
             if config['deep_supervision']:
