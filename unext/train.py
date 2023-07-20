@@ -120,19 +120,31 @@ def train(config, train_loader, model, criterion, optimizer):
         input = input.to(config['device'])
         target = target.to(config['device'])
 
-        print(f'DATASET LOADER\n\t{input.shape} {input.size()} {type(input)}')
+        print(f'DATASET LOADER input\n\t{input.shape} {input.size()} {type(input)}')
         input = torch.unsqueeze(input, 0)
-        dummy = torch.zeros((255, 2,3,256,256))
+        dummy = torch.zeros((95,2,3,96,96))
         print(dummy.shape, dummy.size())
+        dummy = dummy.to(config['device'])
         input = torch.cat([input, dummy])
 
-        dummy = torch.zeros((256,2,1,256,256))
+        print(f'DATASET LOADER target\n\t{target.shape} {target.size()} {type(target)}')
+        target = torch.unsqueeze(target, 0)
+        dummy = torch.zeros((95,2,1,96,96))
+        print(dummy.shape, dummy.size())
+        dummy = dummy.to(config['device'])
+        target = torch.cat([target, dummy])
+        target = torch.permute(target, (1,2,0,3,4))
+        print(f'ENVIOU target\n\t{target.shape} {target.size()} {type(target)}')
+
+        dummy = torch.zeros((96,2,1,96,96))
+        dummy = dummy.to(config['device'])
         input = torch.cat([input, dummy], dim=2)
         input = torch.permute(input, (1,2,0,3,4))
         #torch.unsqueeze(input, 1)
         # input = torch.unsqueeze(input, dim=256)
         #input = input[:, 256, :, :]
-        print(f'ENVIOU\n\t{input.shape} {input.size()} {type(input)}')
+        input = input.to(config['device'])
+        print(f'ENVIOU input\n\t{input.shape} {input.size()} {type(input)}')
 
         # compute output
         if config['deep_supervision']:
@@ -181,7 +193,31 @@ def validate(config, val_loader, model, criterion):
             input = input.to(config['device'])
             target = target.to(config['device'])
 
-            print('TODO GOTTA CHANGE VALIDATE INPUT TOO')
+            print(f'VAL LOADER input\n\t{input.shape} {input.size()} {type(input)}')
+            input = torch.unsqueeze(input, 0)
+            dummy = torch.zeros((95,2,3,96,96))
+            print(dummy.shape, dummy.size())
+            dummy = dummy.to(config['device'])
+            input = torch.cat([input, dummy])
+
+            print(f'VAL LOADER target\n\t{target.shape} {target.size()} {type(target)}')
+            target = torch.unsqueeze(target, 0)
+            dummy = torch.zeros((95,2,1,96,96))
+            print(dummy.shape, dummy.size())
+            dummy = dummy.to(config['device'])
+            target = torch.cat([target, dummy])
+            target = torch.permute(target, (1,2,0,3,4))
+            print(f'VAL ENVIOU target\n\t{target.shape} {target.size()} {type(target)}')
+
+            dummy = torch.zeros((96,2,1,96,96))
+            dummy = dummy.to(config['device'])
+            input = torch.cat([input, dummy], dim=2)
+            input = torch.permute(input, (1,2,0,3,4))
+            #torch.unsqueeze(input, 1)
+            # input = torch.unsqueeze(input, dim=256)
+            #input = input[:, 256, :, :]
+            input = input.to(config['device'])
+            print(f'VAL ENVIOU input\n\t{input.shape} {input.size()} {type(input)}')
 
             # compute output
             if config['deep_supervision']:

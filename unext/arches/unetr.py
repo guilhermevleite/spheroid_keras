@@ -22,7 +22,7 @@ class UnetR(nn.Module):
         deep_supervision=False,
         in_channels: int = 4,
         out_channels: int = 1,
-        img_size: Tuple[int, int, int] = (256, 256, 256),
+        img_size: Tuple[int, int, int] = (96, 96, 96),
         feature_size: int = 16,
         hidden_size: int = 768,
         mlp_dim: int = 3072,
