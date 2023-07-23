@@ -212,11 +212,12 @@ def main():
             config['name'] = '%s_%s_woDS' % (config['dataset'], config['arch'])
 
     timestamp = datetime.datetime.now()
-    exp_name = f"{timestamp.year}-{timestamp.month}-{timestamp.day}-" \
-               f"{timestamp.hour}:{timestamp.minute}_" \
-               f"{config['name']}_{config['arch']}-" \
+    exp_name = f"{config['dataset']}_{config['name']}_{config['arch']}-" \
                f"ep{config['epochs']}_" \
-               f"ba{config['batch_size']}"
+               f"ba{config['batch_size']}_" \
+               f"{timestamp.year}-{timestamp.month:02d}-{timestamp.day:02d}_" \
+               f"{timestamp.hour:02d}-{timestamp.minute:02d}"
+
 
     if(config['early_stopping'] != -1):
         exp_name += f"_es{config['early_stopping']}"
