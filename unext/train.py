@@ -96,6 +96,9 @@ def parse_args():
     parser.add_argument('--gamma', default=2/3, type=float)
     parser.add_argument('--early_stopping', default=-1, type=int,
                         metavar='N', help='early stopping (default: -1)')
+    parser.add_argument('-est', '--early_stopping_threshols', default=-1,
+                        type=int, metavar='N',
+                        help='epoch in which early stopping will start (default: -1)')
     parser.add_argument('--cfg', type=str, metavar="FILE", help='path to config file', )
 
     parser.add_argument('--num_workers', default=4, type=int)
@@ -104,6 +107,9 @@ def parse_args():
                         help='Select between <cpu> or <cuda:0>')
 
     config = parser.parse_args()
+
+    if config['early_stopping'] > 0:
+        assert(config['early_stopping_threshold'] > 0)
 
     return config
 
@@ -127,11 +133,11 @@ def train(config, train_loader, model, criterion, optimizer):
             for output in outputs:
                 loss += criterion(output, target)
             loss /= len(outputs)
-            iou,dice = iou_score(outputs[-1], target)
+            iou, dice = iou_score(outputs[-1], target)
         else:
             output = model(input)
             loss = criterion(output, target)
-            iou,dice = iou_score(output, target)
+            iou, dice = iou_score(output, target)
 
         # compute gradient and do optimizing step
         optimizer.zero_grad()
@@ -156,7 +162,7 @@ def train(config, train_loader, model, criterion, optimizer):
 def validate(config, val_loader, model, criterion):
     avg_meters = {'loss': AverageMeter(),
                   'iou': AverageMeter(),
-                   'dice': AverageMeter()}
+                  'dice': AverageMeter()}
 
     # switch to evaluate mode
     model.eval()
@@ -174,11 +180,11 @@ def validate(config, val_loader, model, criterion):
                 for output in outputs:
                     loss += criterion(output, target)
                 loss /= len(outputs)
-                iou,dice = iou_score(outputs[-1], target)
+                iou, dice = iou_score(outputs[-1], target)
             else:
                 output = model(input)
                 loss = criterion(output, target)
-                iou,dice = iou_score(output, target)
+                iou, dice = iou_score(output, target)
 
             avg_meters['loss'].update(loss.item(), input.size(0))
             avg_meters['iou'].update(iou, input.size(0))
@@ -218,9 +224,11 @@ def main():
                f"{timestamp.year}-{timestamp.month:02d}-{timestamp.day:02d}_" \
                f"{timestamp.hour:02d}-{timestamp.minute:02d}"
 
-
-    if(config['early_stopping'] != -1):
+    if (config['early_stopping'] != -1):
         exp_name += f"_es{config['early_stopping']}"
+
+    exp_name += f"{timestamp.year}-{timestamp.month:02d}-{timestamp.day:02d}_"\
+                f"{timestamp.hour:02d}-{timestamp.minute:02d}"
 
     p = Path(MODELS_PATH) / exp_name
     p.mkdir(parents=True, exist_ok=True)
@@ -370,7 +378,7 @@ def main():
         ('val_dice', []),
     ])
 
-    best_iou = 0
+    best_dice = 0
     trigger = 0
     for epoch in range(config['epochs']):
         print(f"Epoch [{epoch}|{config['epochs']}]")
@@ -407,10 +415,12 @@ def main():
 
         trigger += 1
 
-        if val_log['iou'] > best_iou:
-            torch.save(model.state_dict(), MODELS_PATH+'/%s/model.pth' %
-                       exp_name)
-            best_iou = val_log['iou']
+        if (val_log['dice'] > best_dice and
+           epoch >= config['early_stopping_threshold']):
+
+            torch.save(model.state_dict(),
+                       MODELS_PATH + '/%s/model.pth' % exp_name)
+            best_dice = val_log['dice']
             print("=> saved best model")
             trigger = 0
 
