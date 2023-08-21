@@ -96,7 +96,7 @@ def parse_args():
     parser.add_argument('--gamma', default=2/3, type=float)
     parser.add_argument('--early_stopping', default=-1, type=int,
                         metavar='N', help='early stopping (default: -1)')
-    parser.add_argument('-est', '--early_stopping_threshols', default=-1,
+    parser.add_argument('-est', '--early_stopping_threshold', default=-1,
                         type=int, metavar='N',
                         help='epoch in which early stopping will start (default: -1)')
     parser.add_argument('--cfg', type=str, metavar="FILE", help='path to config file', )
@@ -107,9 +107,6 @@ def parse_args():
                         help='Select between <cpu> or <cuda:0>')
 
     config = parser.parse_args()
-
-    if config['early_stopping'] > 0:
-        assert(config['early_stopping_threshold'] > 0)
 
     return config
 
@@ -206,6 +203,9 @@ def validate(config, val_loader, model, criterion):
 
 def main():
     config = vars(parse_args())
+
+    if config['early_stopping'] > 0:
+        assert(config['early_stopping_threshold'] > 0)
 
     if (torch.cuda.is_available() and config['device'] != 'cpu'):
         torch.cuda.set_device(config['device'])
@@ -425,7 +425,9 @@ def main():
             trigger = 0
 
         # early stopping
-        if config['early_stopping'] >= 0 and trigger >= config['early_stopping']:
+        if config['early_stopping'] >= 0 and \
+                trigger >= config['early_stopping'] and \
+                epoch >= config['early_stopping_threshold']:
             print("=> early stopping")
             break
 

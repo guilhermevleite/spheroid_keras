@@ -83,6 +83,6 @@ class Dataset(torch.utils.data.Dataset):
         mask = mask.astype('float32') / 255
         mask = mask.transpose(2, 0, 1)
 
-        print(f"TODO Fix Transforms {img.shape, mask.shape}")
+        # print(f"TODO Fix Transforms {img.shape, mask.shape}")
 
         return img, mask, {'img_id': img_id}

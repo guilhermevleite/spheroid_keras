@@ -1,0 +1,1 @@
+python3 train.py --dataset lacalle_spheroidj --arch TransUnet --name friday_spheroidj --img_ext .png --mask_ext .png --lr 0.0001 --epochs 100 --input_w 256 --input_h 256 --device cuda:0 --b 26 --early_stopping 10 -est 30
