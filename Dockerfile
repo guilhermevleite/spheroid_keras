@@ -13,4 +13,6 @@ RUN pip3 install opencv-python \
                 einops \
                 ml_collections
 
+RUN apt-get update && apt-get install ffmpeg libsm6 libxext6 -y
+
 ENV MPLCONFIGDIR=/home/leite/.config/matplotlib
