@@ -1,16 +1,16 @@
 FROM pytorch/pytorch:1.12.1-cuda11.3-cudnn8-devel
 MAINTAINER Guilherme (guilherme.vieira.leite@gmail.com)
 
-RUN pip3 install opencv-python
-RUN pip3 install scikit-image
-RUN pip3 install scikit-learn
-RUN pip3 install pandas
-RUN pip3 install albumentations
-RUN pip3 install matplotlib
-RUN pip3 install timm
-RUN pip3 install mmcv
-RUN pip3 install monai==0.7.0
-RUN pip3 install einops
-RUN pip3 install ml_collections
+RUN pip3 install opencv-python \
+                scikit-image \
+                scikit-learn \
+                pandas \
+                albumentations \
+                matplotlib \
+                timm \
+                mmcv \
+                monai==0.7.0 \
+                einops \
+                ml_collections
 
-RUN mkdir -p /.config/matplotlib
+ENV MPLCONFIGDIR=/home/leite/.config/matplotlib
