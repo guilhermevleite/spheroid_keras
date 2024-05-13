@@ -1,4 +1,5 @@
 import argparse
+import random
 from pathlib import Path
 import os
 from collections import OrderedDict
@@ -294,6 +295,8 @@ def main():
     # TODO : Shuffle this
     # TODO : Replace os.path for pathlib
     # Data loading code
+    img_ids = sorted(Path(DATASETS_PATH / config['dataset'] / 'images').glob('*'))
+    random.shuffle(img_ids)
     img_ids = glob(os.path.join(DATASETS_PATH,
                                 config['dataset'],
                                 'images',
