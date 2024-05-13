@@ -62,8 +62,11 @@ class Dataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         img_id = self.img_ids[idx]
 
-        im_path = Path(self.img_dir, img_id, self.img_ext)
+        im_path = Path(self.img_dir, f'{img_id}{self.img_ext}')
         img = cv.imread(str(im_path))
+        if img is None:
+            raise Exception(f"Image not loaded {str(im_path)}")
+            exit()
 
         # TODO remove this and resize using augmentation pipeline
         img = cv.resize(img, (self.img_size, self.img_size))
@@ -71,7 +74,11 @@ class Dataset(torch.utils.data.Dataset):
         mask = []
         for i in range(self.num_classes):
             msk_path = Path(self.mask_dir, str(i), img_id, self.mask_ext)
+            msk_path = Path(self.mask_dir, str(i), f'{img_id}{self.mask_ext}')
             m = cv.imread(str(msk_path), cv.IMREAD_GRAYSCALE)
+            if m is None:
+                raise Exception(f"Image not loaded {str(msk_path)}")
+                exit()
 
             # TODO remove this and resize using augmentation pipeline
             m = cv.resize(m, (self.img_size, self.img_size))
