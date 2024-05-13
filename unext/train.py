@@ -29,8 +29,10 @@ LOSS_NAMES = losses.__all__
 LOSS_NAMES.append('BCEWithLogitsLoss')
 
 
-DATASETS_PATH = '/workspace/deep_learning/datasets/segmentation'
-MODELS_PATH = '/workspace/deep_learning/experiments/models'
+# DATASETS_PATH = '/workspace/deep_learning/datasets/segmentation'
+DATASETS_PATH = '/media/DATASETS'
+MODELS_PATH = '/media/MODELS'
+#MODELS_PATH = '/workspace/deep_learning/experiments/modelss'
 
 
 def parse_args():
@@ -289,6 +291,8 @@ def main():
     else:
         raise NotImplementedError
 
+    # TODO : Shuffle this
+    # TODO : Replace os.path for pathlib
     # Data loading code
     img_ids = glob(os.path.join(DATASETS_PATH,
                                 config['dataset'],
