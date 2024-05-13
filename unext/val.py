@@ -1,4 +1,5 @@
 import argparse
+# TODO replace os with pathlib
 import os
 from glob import glob
 
@@ -15,15 +16,15 @@ import archs
 from dataset import Dataset
 from metrics import iou_score
 from utils import AverageMeter
-from albumentations import Resize
+# from albumentations import Resize
 # import time
 # from archs import UNext
 
-from .settings import DATASETS_PATH, MODELS_PATH
+# from .settings import DATASETS_PATH, MODELS_PATH
 
 
 DATASETS_PATH = '/workspace/deep_learning/datasets/segmentation'
-MODELS_PATH = '/workspace/deep_learning/experiments/models'
+MODELS_PATH = '/workspace/models_free_space/w30/val_delete_later'
 OUTPUTS_PATH = '/workspace/deep_learning/experiments/outputs'
 
 
@@ -56,7 +57,7 @@ def main():
                                            config['input_channels'],
                                            config['deep_supervision'])
 
-    model = model.cuda()
+    # model = model.cuda()
 
     # Data loading code
     img_ids = glob(os.path.join(DATASETS_PATH,
@@ -68,18 +69,20 @@ def main():
     _, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
 
     model.load_state_dict(torch.load(MODELS_PATH+'/%s/model.pth' %
-                                     config['name']))
+                                     config['name'], map_location=torch.device('cpu')))
     model.eval()
 
-    val_transform = Compose([
-        Resize(config['input_h'], config['input_w']),
-        transforms.Normalize(),
-    ])
+    # val_transform = Compose([
+    #     Resize(config['input_h'], config['input_w']),
+    #     transforms.Normalize(),
+    # ])
+    val_transform = None
 
     val_dataset = Dataset(
         img_ids=val_img_ids,
         img_dir=os.path.join(DATASETS_PATH, config['dataset'], 'images'),
         mask_dir=os.path.join(DATASETS_PATH, config['dataset'], 'masks'),
+        img_size=config['input_h'], # TODO Delete this after fixing transforms
         img_ext=config['img_ext'],
         mask_ext=config['mask_ext'],
         num_classes=config['num_classes'],
@@ -101,9 +104,9 @@ def main():
         os.makedirs(os.path.join(OUTPUTS_PATH, config['name'], str(c)), exist_ok=True)
     with torch.no_grad():
         for input, target, meta in tqdm(val_loader, total=len(val_loader)):
-            input = input.cuda()
-            target = target.cuda()
-            model = model.cuda()
+            # input = input.cuda()
+            # target = target.cuda()
+            # model = model.cuda()
             # compute output
             output = model(input)
 
@@ -123,7 +126,7 @@ def main():
     print('IoU: %.4f' % iou_avg_meter.avg)
     print('Dice: %.4f' % dice_avg_meter.avg)
 
-    torch.cuda.empty_cache()
+    # torch.cuda.empty_cache()
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
-import os
+from pathlib import Path
 
-import cv2
+import cv2 as cv
 import numpy as np
 import torch
 import torch.utils.data
@@ -21,7 +21,8 @@ class Dataset(torch.utils.data.Dataset):
             img_ext (str): Image file extension.
             mask_ext (str): Mask file extension.
             num_classes (int): Number of classes.
-            transform (Compose, optional): Compose transforms of albumentations. Defaults to None.
+            transform (Compose, optional): Compose transforms of
+                albumentations. Defaults to None.
 
         Note:
             Make sure to put the files as the following structure:
@@ -61,16 +62,24 @@ class Dataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         img_id = self.img_ids[idx]
 
-        img = cv2.imread(os.path.join(self.img_dir, img_id + self.img_ext))
-        img = cv2.resize(img, (self.img_size, self.img_size))
+        im_path = Path(self.img_dir, img_id, self.img_ext)
+        img = cv.imread(str(im_path))
+
+        # TODO remove this and resize using augmentation pipeline
+        img = cv.resize(img, (self.img_size, self.img_size))
 
         mask = []
         for i in range(self.num_classes):
-            m = cv2.imread(os.path.join(self.mask_dir, str(i), img_id + self.mask_ext), cv2.IMREAD_GRAYSCALE)
-            m = cv2.resize(m, (self.img_size, self.img_size))
+            msk_path = Path(self.mask_dir, str(i), img_id, self.mask_ext)
+            m = cv.imread(str(msk_path), cv.IMREAD_GRAYSCALE)
+
+            # TODO remove this and resize using augmentation pipeline
+            m = cv.resize(m, (self.img_size, self.img_size))
+
             mask.append(m[..., None])
         mask = np.dstack(mask)
 
+        # TODO apply transforms here
         if self.transform is not None:
             # augmented = self.transform(image=img, mask=mask)
             # img = augmented['image']
@@ -78,11 +87,10 @@ class Dataset(torch.utils.data.Dataset):
             img = self.transform(img)
             mask = self.transform(mask)
 
+        # TODO move this to transform group
         img = img.astype('float32') / 255
         img = img.transpose(2, 0, 1)
         mask = mask.astype('float32') / 255
         mask = mask.transpose(2, 0, 1)
-
-        # print(f"TODO Fix Transforms {img.shape, mask.shape}")
 
         return img, mask, {'img_id': img_id}
