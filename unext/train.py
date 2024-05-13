@@ -26,9 +26,9 @@ LOSS_NAMES = losses.__all__
 LOSS_NAMES.append('BCEWithLogitsLoss')
 
 
-DATASETS_PATH = '/workspace/deep_learning/datasets/segmentation'
+DATASETS_PATH = '/workspace/.datasets/segmentation'
 # DATASETS_PATH = '/raid/DATASETS/leite_datasets/datasets/segmentation'
-MODELS_PATH = '/workspace/deep_learning/experiments/models'
+MODELS_PATH = '/workspace/spheroid_results/models'
 # MODELS_PATH = '/raid/DATASETS/leite_datasets/experiments/models'
 
 
