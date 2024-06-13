@@ -292,17 +292,11 @@ def main():
     else:
         raise NotImplementedError
 
-    # TODO : Shuffle this
-    # TODO : Replace os.path for pathlib
     # Data loading code
-    img_ids = sorted(Path(DATASETS_PATH / config['dataset'] / 'images').glob('*'))
-    random.shuffle(img_ids)
-    img_ids = glob(os.path.join(DATASETS_PATH,
-                                config['dataset'],
-                                'images',
-                                '*' + config['img_ext']))
-    print(len(img_ids))
-    img_ids = [os.path.splitext(os.path.basename(p))[0] for p in img_ids]
+    # Data will be shuffle by torch dataloader
+    img_ids = sorted(Path(f'{DATASETS_PATH}/{config["dataset"]}/images').glob('*'))
+    img_ids = [ f.stem for f in img_ids ]
+    print(f'LOG : {len(img_ids)} files found')
 
     train_img_ids, val_img_ids = train_test_split(img_ids,
                                                   test_size=0.2,
