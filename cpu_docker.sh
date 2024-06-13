@@ -1,0 +1,1 @@
+docker run -it --name=cpu_leite --ipc=host --rm -v /etc/passwd:/etc/passwd:ro -v /etc/group:/etc/group:ro -v /home/leite/workspace:/workspace -v /media/leite/data:/media -w /workspace/spheroid_codes/segmentation/unext -u $(id -u):$(id -g) phd_torch bash
