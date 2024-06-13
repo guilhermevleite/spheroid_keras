@@ -39,7 +39,7 @@ class Unet(nn.Module):
             input_channels = feature
 
         # Upward path
-        # TODO: For a better result we should use Transpose Convolutions
+        # TODO : For a better result we should use Transpose Convolutions
         for feature in reversed(features):
             # First append is the UP
             self.ups.append(
