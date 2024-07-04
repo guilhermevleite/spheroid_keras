@@ -68,6 +68,8 @@ def parse_args():
     # dataset
     parser.add_argument('--dataset', default='isic',
                         help='dataset name')
+    parser.add_argument('--replicate', default='-1', type=int,
+                        help='replica index of this iteration')
     parser.add_argument('--img_ext', default='.png',
                         help='image file extension')
     parser.add_argument('--mask_ext', default='.png',
@@ -221,17 +223,15 @@ def main():
             config['name'] = '%s_%s_woDS' % (config['dataset'], config['arch'])
 
     timestamp = datetime.datetime.now()
-    exp_name = f"{config['dataset']}_{config['name']}_{config['arch']}-" \
+    exp_name = f"{config['name']}_{config['dataset']}_{config['arch']}-" \
                f"ep{config['epochs']}_" \
-               f"ba{config['batch_size']}_" \
-               f"{timestamp.year}-{timestamp.month:02d}-{timestamp.day:02d}_" \
-               f"{timestamp.hour:02d}-{timestamp.minute:02d}"
+               f"ba{config['batch_size']}_"
 
     if (config['early_stopping'] != -1):
-        exp_name += f"_es{config['early_stopping']}"
+        exp_name += f"es{config['early_stopping']}_"
 
-    exp_name += f"{timestamp.year}-{timestamp.month:02d}-{timestamp.day:02d}_"\
-                f"{timestamp.hour:02d}-{timestamp.minute:02d}"
+    exp_name += f"{config['replicate']}_({timestamp.year}-{timestamp.strftime('%b')}-{timestamp.day:02d})_"\
+                f"({timestamp.hour:02d}-{timestamp.minute:02d})"
 
     p = Path(MODELS_PATH) / exp_name
     p.mkdir(parents=True, exist_ok=True)

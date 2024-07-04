@@ -70,7 +70,6 @@ class Unet(nn.Module):
             skip_connections.append(x)
             x = self.pool(x)
 
-        breakpoint()
         x = self.bottleneck(x)
         # Simply reversing the list, because of the upward path
         # will use it in inverse order
