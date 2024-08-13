@@ -30,10 +30,11 @@ LOSS_NAMES = losses.__all__
 LOSS_NAMES.append('BCEWithLogitsLoss')
 
 
-# DATASETS_PATH = '/workspace/deep_learning/datasets/segmentation'
+
 DATASETS_PATH = '/media/DATASETS'
+DATASETS_PATH = '/home/leite/workspace/.datasets/segmentation'
 MODELS_PATH = '/media/MODELS'
-#MODELS_PATH = '/workspace/deep_learning/experiments/modelss'
+MODELS_PATH = '/home/leite/workspace/deep_learning/experiments/models'
 
 
 def parse_args():
@@ -127,6 +128,8 @@ def train(config, train_loader, model, criterion, optimizer):
     for input, target, _ in train_loader:
         input = input.to(config['device'])
         target = target.to(config['device'])
+
+        print('ENTRADA NO TRAIN: ', input.shape)
 
         # compute output
         if config['deep_supervision']:
@@ -294,6 +297,7 @@ def main():
 
     # Data loading code
     # Data will be shuffle by torch dataloader
+    print(Path(f'{DATASETS_PATH}/{config["dataset"]}/images'))
     img_ids = sorted(Path(f'{DATASETS_PATH}/{config["dataset"]}/images').glob('*'))
     img_ids = [ f.stem for f in img_ids ]
     print(f'LOG : {len(img_ids)} files found')
@@ -404,17 +408,17 @@ def main():
 
         log['epoch'].append(epoch)
         log['lr'].append(config['lr'])
-        log['loss'].append(train_log['loss'])
-        log['iou'].append(train_log['iou'])
-        log['val_loss'].append(val_log['loss'])
-        log['val_iou'].append(val_log['iou'])
-        log['val_dice'].append(val_log['dice'])
+        log['loss'].append(train_log['loss']*100)
+        log['iou'].append(train_log['iou']*100)
+        log['val_loss'].append(val_log['loss']*100)
+        log['val_iou'].append(val_log['iou']*100)
+        log['val_dice'].append(val_log['dice']*100)
 
         pd.DataFrame(log).to_csv(f"{MODELS_PATH}/{exp_name}/log.csv", index=False)
         # pd.DataFrame(log).to_csv(MODELS_PATH+'/%s/log.csv' %
                                  # config['name'], index=False)
 
-        trigger += 1
+        trigger += 2
 
         if (val_log['dice'] > best_dice and
            epoch >= config['early_stopping_threshold']):
