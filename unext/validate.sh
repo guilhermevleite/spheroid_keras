@@ -1,14 +1,5 @@
-EXP_NAME=0_tunet_ours_filtered_100ep
-python val.py --name $EXP_NAME
+for folder in ./*; do
+	echo $folder
 
-EXP_NAME=2_multires_ours_filtered_100ep
-python val.py --name $EXP_NAME
-
-EXP_NAME=2_unet_ours_filtered_100ep
-python val.py --name $EXP_NAME
-
-EXP_NAME=2_unetpp_ours_filtered_100ep
-python val.py --name $EXP_NAME
-
-EXP_NAME=2_unext_ours_filtered_100ep
-python val.py --name $EXP_NAME
+	python /workspace/spheroid_segmentation/unext/val.py --name $folder --dataset "ours_ALL_test"
+done

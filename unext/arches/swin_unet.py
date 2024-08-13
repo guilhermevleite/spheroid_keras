@@ -325,7 +325,6 @@ class SwinUnet(nn.Module):
         self.head        = nn.Conv2d(C, num_class, 1,padding='same')
 
     def forward(self, x):
-        print("FORWARD", x.shape)
         x = self.patch_embed(x)
 
         x,skip_ftrs  = self.encoder(x)

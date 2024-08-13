@@ -52,9 +52,9 @@ class OutConv(nn.Module):
     def forward(self, x):
         return self.conv(x)
 
-class GPTNet(nn.Module):
+class UnetAtt(nn.Module):
     def __init__(self, num_classes, input_channels, deep_supervision=True):
-        super(GPTNet, self).__init__()
+        super(UnetAtt, self).__init__()
 
         n_classes = num_classes
         n_channels = input_channels

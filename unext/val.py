@@ -23,9 +23,11 @@ from utils import AverageMeter
 # from .settings import DATASETS_PATH, MODELS_PATH
 
 
-DATASETS_PATH = '/workspace/deep_learning/datasets/segmentation'
-MODELS_PATH = '/workspace/models_free_space/w30/val_delete_later'
-OUTPUTS_PATH = '/workspace/deep_learning/experiments/outputs'
+# DATASETS_PATH = '/workspace/deep_learning/datasets/segmentation'
+DATASETS_PATH = '/media/DATASETS'
+# MODELS_PATH = '/workspace/models_free_space/w30/val_delete_later'
+MODELS_PATH = '/media/MODELS/split_test'
+OUTPUTS_PATH = '/media/INFERENCES'
 
 
 def parse_args():
@@ -33,6 +35,10 @@ def parse_args():
 
     parser.add_argument('--name', default=None,
                         help='model name')
+    parser.add_argument('--device', default='cpu', type=str,
+                        help='Select GPU device (eg. cuda:0), default: cpu')
+    parser.add_argument('--dataset', default=None,
+                        help='Dataset name for validation, default: same dataset as training')
 
     args = parser.parse_args()
 
@@ -45,6 +51,9 @@ def main():
     with open(MODELS_PATH+'/%s/config.yml' % args.name, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
+        if args.dataset != None:
+            config['dataset'] = args.dataset
+
     print('-'*20)
     for key in config.keys():
         print('%s: %s' % (key, str(config[key])))
@@ -53,11 +62,15 @@ def main():
     cudnn.benchmark = True
 
     print("=> creating model %s" % config['arch'])
-    model = archs.__dict__[config['arch']](config['num_classes'],
-                                           config['input_channels'],
-                                           config['deep_supervision'])
+    # model = archs.__dict__[config['arch']](config['num_classes'],
+    #                                        config['input_channels'],
+    #                                        config['deep_supervision'])
 
-    # model = model.cuda()
+    model = archs.__dict__[config['arch']](num_classes=config['num_classes'],
+                                           input_channels=config['input_channels'],
+                                           deep_supervision=config['deep_supervision'])
+
+    model = model.to(args.device)
 
     # Data loading code
     img_ids = glob(os.path.join(DATASETS_PATH,
@@ -66,10 +79,12 @@ def main():
                                 '*' + config['img_ext']))
     img_ids = [os.path.splitext(os.path.basename(p))[0] for p in img_ids]
 
-    _, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
+    _, val_img_ids = train_test_split(img_ids, test_size=0.97)
 
-    model.load_state_dict(torch.load(MODELS_PATH+'/%s/model.pth' %
-                                     config['name'], map_location=torch.device('cpu')))
+    print(f'{len(val_img_ids)} images found')
+    model_path = f'{MODELS_PATH}/{args.name}/model.pth'
+    print(model_path)
+    model.load_state_dict(torch.load(model_path, map_location=torch.device(args.device)))
     model.eval()
 
     # val_transform = Compose([
