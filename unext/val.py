@@ -26,7 +26,7 @@ from utils import AverageMeter
 # DATASETS_PATH = '/workspace/deep_learning/datasets/segmentation'
 DATASETS_PATH = '/media/DATASETS'
 # MODELS_PATH = '/workspace/models_free_space/w30/val_delete_later'
-MODELS_PATH = '/media/MODELS/split_test'
+MODELS_PATH = '/media/MODELS'
 OUTPUTS_PATH = '/media/INFERENCES'
 
 

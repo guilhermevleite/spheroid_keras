@@ -10,10 +10,50 @@ from torch.utils.data import TensorDataset
 import math
 
 
+class SwinUnet(nn.Module):
+    def __init__(self,
+                 H=224,
+                 W=224,
+                 ch=3,
+                 C=32,
+                 num_class=1,
+                 num_classes=1,
+                 input_channels=3,
+                 deep_supervision=True,
+                 num_blocks=3,
+                 head_count=4,
+                 patch_size=4,
+                 swindow_size=3,):
+        super().__init__()
+        self.patch_embed = PatchEmbedding(ch, C, patch_size)
+        self.encoder = Encoder(C, (H//patch_size, W//patch_size),num_blocks)
+        self.bottleneck = SwinBlock(C*(2**num_blocks), (H//(patch_size* (2**num_blocks)), W//(patch_size* (2**num_blocks))), swindow_size)
+        self.decoder = Decoder(C, (H//patch_size, W//patch_size),num_blocks)
+        self.final_expansion = FinalPatchExpansion(C)
+        self.head        = nn.Conv2d(C, num_class, 1,padding='same')
+
+    def forward(self, x):
+        x = self.patch_embed(x)
+
+        x,skip_ftrs  = self.encoder(x)
+
+        x = self.bottleneck(x)
+
+        x = self.decoder(x, skip_ftrs[::-1])
+
+        x = self.final_expansion(x)
+
+        x = self.head(x.permute(0,3,1,2))
+
+        return x
+
+     
 def window_partition(x, window_size):
     B, H, W, C = x.shape
+    print('Before Window Partition', x.shape, window_size)
     x = x.view(B, H // window_size[0], window_size[0], W // window_size[1], window_size[1], C)
     windows = x.permute(0, 1, 3, 2, 4, 5).contiguous().view(-1, window_size[0], window_size[1], C)
+    print('After Window Partition', windows.shape)
     return windows
 
 def window_reverse(windows, window_size, H, W):
@@ -185,6 +225,7 @@ class PatchEmbedding(nn.Module):
 
     def forward(self, X):
         # Output shape: (batch size, no. of patches, no. of channels)
+        print('Patch embedding: ', self.conv(X).permute(0,2,3,1).shape)
         return self.conv(X).permute(0,2,3,1)
 
 class PatchMerging(nn.Module):
@@ -199,7 +240,11 @@ class PatchMerging(nn.Module):
 
     def forward(self, x):
         B, H, W, C = x.shape
-        x = x.reshape(B, H // 2, 2, W // 2, 2, C).permute(0, 1, 3, 4, 2, 5).flatten(3)
+        print('Before flatten', x.shape)
+        x = x.reshape(B, H // 2, 2, W // 2, 2, C)
+        x = x.permute(0, 1, 3, 4, 2, 5)
+        x = x.flatten(3)
+        print('After flatten', x.shape)
         x = self.norm(x)
         x = self.reduction(x)
         return x
@@ -312,31 +357,3 @@ class Decoder(nn.Module):
             x = linear_concatter(x)
             x = swin_block(x)
         return x
-
-
-class SwinUnet(nn.Module):
-    def __init__(self, H=224, W=224, ch=3, C=32, num_class=1, num_classes=1, input_channels=3, deep_supervision=True, num_blocks=3, patch_size = 4):
-        super().__init__()
-        self.patch_embed = PatchEmbedding(ch, C, patch_size)
-        self.encoder = Encoder(C, (H//patch_size, W//patch_size),num_blocks)
-        self.bottleneck = SwinBlock(C*(2**num_blocks), (H//(patch_size* (2**num_blocks)), W//(patch_size* (2**num_blocks))))
-        self.decoder = Decoder(C, (H//patch_size, W//patch_size),num_blocks)
-        self.final_expansion = FinalPatchExpansion(C)
-        self.head        = nn.Conv2d(C, num_class, 1,padding='same')
-
-    def forward(self, x):
-        x = self.patch_embed(x)
-
-        x,skip_ftrs  = self.encoder(x)
-
-        x = self.bottleneck(x)
-
-        x = self.decoder(x, skip_ftrs[::-1])
-
-        x = self.final_expansion(x)
-
-        x = self.head(x.permute(0,3,1,2))
-
-        return x
-
-     

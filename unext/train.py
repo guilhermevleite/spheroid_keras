@@ -111,6 +111,15 @@ def parse_args():
     parser.add_argument('--device', default='cpu', type=str,
                         help='Select between <cpu> or <cuda:0>')
 
+    parser.add_argument('--T_head_count', default=4, type=int,
+                        help='Transformer parameter')
+
+    parser.add_argument('--T_patch_size', default=16, type=int,
+                        help='Transformer parameter')
+
+    parser.add_argument('--S_swindow_size', default=3,  type=int,
+                        help='Swin transformer parameter')
+
     config = parser.parse_args()
 
     return config
@@ -254,9 +263,26 @@ def main():
     cudnn.benchmark = True
 
     # create model
-    model = archs.__dict__[config['arch']](num_classes=config['num_classes'],
-                                           input_channels=config['input_channels'],
-                                           deep_supervision=config['deep_supervision'])
+    model = None
+
+    if config['S_swindow_size']:
+        model = archs.__dict__[config['arch']](num_classes=config['num_classes'],
+                                       input_channels=config['input_channels'],
+                                       deep_supervision=config['deep_supervision'],
+                                       head_count=config['T_head_count'],
+                                       patch_size=config['T_patch_size'],
+                                       swindow_size=config['S_swindow_size'])
+
+    elif config['T_head_count']:
+        model = archs.__dict__[config['arch']](num_classes=config['num_classes'],
+                                       input_channels=config['input_channels'],
+                                       deep_supervision=config['deep_supervision'],
+                                       head_count=config['T_head_count'],
+                                       patch_size=config['T_patch_size'])
+    else:
+        model = archs.__dict__[config['arch']](num_classes=config['num_classes'],
+                                       input_channels=config['input_channels'],
+                                       deep_supervision=config['deep_supervision'])
 
     model = model.to(config['device'])
 
