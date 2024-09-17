@@ -1,3 +1,6 @@
+# https://github.com/mkara44/transunet_pytorch
+
+
 import torch
 import numpy as np
 from torch import nn
@@ -6,21 +9,25 @@ from einops import rearrange, repeat
 
 class TransUnet(nn.Module):
     def __init__(self,
-                 num_classes=1,
-                 input_channels=3,
                  deep_supervision=False,
                  img_dim=256,
                  in_channels=3,
+                 input_channels=3,
                  out_channels=128,
                  head_num=4,
+                 head_count=4,
                  mlp_dim=512,
                  block_num=8,
                  patch_dim=16,
-                 class_num=1):
+                 patch_size=16,
+                 class_num=1,
+                 num_classes=1,):
         super().__init__()
 
         in_channels = input_channels
         class_num = num_classes
+        head_num = head_count
+        patch_dim = patch_size
 
         self.encoder = TransEncoder(img_dim,
                                     in_channels,
@@ -72,7 +79,10 @@ class TransEncoder(nn.Module):
                                           out_channels * 8,
                                           stride=2)
 
+        self.patch_dim = patch_dim
         self.vit_img_dim = img_dim // patch_dim
+
+
         self.vit = ViT(self.vit_img_dim,
                        out_channels * 8,
                        out_channels * 8,
@@ -88,6 +98,8 @@ class TransEncoder(nn.Module):
                                stride=1,
                                padding=1)
         self.norm2 = nn.BatchNorm2d(512)
+
+        self.my_shit = nn.Conv2d(1024, (self.vit_img_dim**2), kernel_size=1, stride=1, bias=False)
 
     def forward(self, x):
         x = self.conv1(x)
