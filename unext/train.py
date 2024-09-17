@@ -112,13 +112,13 @@ def parse_args():
     parser.add_argument('--device', default='cpu', type=str,
                         help='Select between <cpu> or <cuda:0>')
 
-    parser.add_argument('--T_head_count', default=4, type=int,
+    parser.add_argument('--T_head_count', type=int,
                         help='Transformer parameter')
 
-    parser.add_argument('--T_patch_size', default=16, type=int,
+    parser.add_argument('--T_patch_size', type=int,
                         help='Transformer parameter')
 
-    parser.add_argument('--S_swindow_size', default=3,  type=int,
+    parser.add_argument('--S_swindow_size',  type=int,
                         help='Swin transformer parameter')
 
     config = parser.parse_args()
@@ -137,8 +137,6 @@ def train(config, train_loader, model, criterion, optimizer):
     for input, target, _ in train_loader:
         input = input.to(config['device'])
         target = target.to(config['device'])
-
-        print('ENTRADA NO TRAIN: ', input.shape)
 
         # compute output
         if config['deep_supervision']:
@@ -268,6 +266,7 @@ def main():
     # create model
     model = None
 
+    print('head_count', config['T_head_count'])
     if config['S_swindow_size']:
         model = archs.__dict__[config['arch']](num_classes=config['num_classes'],
                                        input_channels=config['input_channels'],
