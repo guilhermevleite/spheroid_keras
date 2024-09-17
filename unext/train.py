@@ -32,9 +32,9 @@ LOSS_NAMES.append('BCEWithLogitsLoss')
 
 
 DATASETS_PATH = '/media/DATASETS'
-DATASETS_PATH = '/home/leite/workspace/.datasets/segmentation'
+# DATASETS_PATH = '/home/leite/workspace/.datasets/segmentation'
 MODELS_PATH = '/media/MODELS'
-MODELS_PATH = '/home/leite/workspace/deep_learning/experiments/models'
+# MODELS_PATH = '/home/leite/workspace/deep_learning/experiments/models'
 
 
 def parse_args():
@@ -112,13 +112,13 @@ def parse_args():
     parser.add_argument('--device', default='cpu', type=str,
                         help='Select between <cpu> or <cuda:0>')
 
-    parser.add_argument('--T_head_count', default=4, type=int,
+    parser.add_argument('--T_head_count', type=int,
                         help='Transformer parameter')
 
-    parser.add_argument('--T_patch_size', default=16, type=int,
+    parser.add_argument('--T_block_num', type=int,
                         help='Transformer parameter')
 
-    parser.add_argument('--S_swindow_size', default=3,  type=int,
+    parser.add_argument('--S_C', type=int,
                         help='Swin transformer parameter')
 
     config = parser.parse_args()
@@ -137,8 +137,6 @@ def train(config, train_loader, model, criterion, optimizer):
     for input, target, _ in train_loader:
         input = input.to(config['device'])
         target = target.to(config['device'])
-
-        print('ENTRADA NO TRAIN: ', input.shape)
 
         # compute output
         if config['deep_supervision']:
@@ -268,24 +266,10 @@ def main():
     # create model
     model = None
 
-    if config['S_swindow_size']:
-        model = archs.__dict__[config['arch']](num_classes=config['num_classes'],
-                                       input_channels=config['input_channels'],
-                                       deep_supervision=config['deep_supervision'],
-                                       head_count=config['T_head_count'],
-                                       patch_size=config['T_patch_size'],
-                                       swindow_size=config['S_swindow_size'])
-
-    elif config['T_head_count']:
-        model = archs.__dict__[config['arch']](num_classes=config['num_classes'],
-                                       input_channels=config['input_channels'],
-                                       deep_supervision=config['deep_supervision'],
-                                       head_count=config['T_head_count'],
-                                       patch_size=config['T_patch_size'])
-    else:
-        model = archs.__dict__[config['arch']](num_classes=config['num_classes'],
-                                       input_channels=config['input_channels'],
-                                       deep_supervision=config['deep_supervision'])
+    model = archs.__dict__[config['arch']](num_classes=config['num_classes'],
+                                    input_channels=config['input_channels'],
+                                    deep_supervision=config['deep_supervision'],
+                                    C=config['S_C'])
 
     model = model.to(config['device'])
 
