@@ -1,3 +1,5 @@
+#https://medium.com/@ashishbisht0307/swin-transformer-based-unet-architecture-for-semantic-segmentation-with-pytorch-code-91e779334e8e
+
 from glob import glob
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -50,10 +52,8 @@ class SwinUnet(nn.Module):
      
 def window_partition(x, window_size):
     B, H, W, C = x.shape
-    print('Before Window Partition', x.shape, window_size)
     x = x.view(B, H // window_size[0], window_size[0], W // window_size[1], window_size[1], C)
     windows = x.permute(0, 1, 3, 2, 4, 5).contiguous().view(-1, window_size[0], window_size[1], C)
-    print('After Window Partition', windows.shape)
     return windows
 
 def window_reverse(windows, window_size, H, W):
@@ -225,7 +225,6 @@ class PatchEmbedding(nn.Module):
 
     def forward(self, X):
         # Output shape: (batch size, no. of patches, no. of channels)
-        print('Patch embedding: ', self.conv(X).permute(0,2,3,1).shape)
         return self.conv(X).permute(0,2,3,1)
 
 class PatchMerging(nn.Module):
@@ -240,11 +239,9 @@ class PatchMerging(nn.Module):
 
     def forward(self, x):
         B, H, W, C = x.shape
-        print('Before flatten', x.shape)
         x = x.reshape(B, H // 2, 2, W // 2, 2, C)
         x = x.permute(0, 1, 3, 4, 2, 5)
         x = x.flatten(3)
-        print('After flatten', x.shape)
         x = self.norm(x)
         x = self.reduction(x)
         return x

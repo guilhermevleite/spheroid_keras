@@ -32,9 +32,9 @@ LOSS_NAMES.append('BCEWithLogitsLoss')
 
 
 DATASETS_PATH = '/media/DATASETS'
-DATASETS_PATH = '/home/leite/workspace/.datasets/segmentation'
+# DATASETS_PATH = '/home/leite/workspace/.datasets/segmentation'
 MODELS_PATH = '/media/MODELS'
-MODELS_PATH = '/home/leite/workspace/deep_learning/experiments/models'
+# MODELS_PATH = '/home/leite/workspace/deep_learning/experiments/models'
 
 
 def parse_args():
@@ -266,25 +266,8 @@ def main():
     # create model
     model = None
 
-    print('head_count', config['T_head_count'])
-    if config['S_swindow_size']:
-        model = archs.__dict__[config['arch']](num_classes=config['num_classes'],
-                                       input_channels=config['input_channels'],
-                                       deep_supervision=config['deep_supervision'],
-                                       head_count=config['T_head_count'],
-                                       patch_size=config['T_patch_size'],
-                                       swindow_size=config['S_swindow_size'])
-
-    elif config['T_head_count']:
-        model = archs.__dict__[config['arch']](num_classes=config['num_classes'],
-                                       input_channels=config['input_channels'],
-                                       deep_supervision=config['deep_supervision'],
-                                       head_count=config['T_head_count'],
-                                       patch_size=config['T_patch_size'])
-    else:
-        model = archs.__dict__[config['arch']](num_classes=config['num_classes'],
-                                       input_channels=config['input_channels'],
-                                       deep_supervision=config['deep_supervision'])
+    model = archs.__dict__[config['arch']](num_classes=config['num_classes'],
+                                    input_channels=config['input_channels'])
 
     model = model.to(config['device'])
 
