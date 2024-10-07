@@ -86,7 +86,7 @@ class Dataset(torch.utils.data.Dataset):
             mask.append(m[..., None])
         mask = np.dstack(mask)
 
-        # TODO apply transforms here
+        # TODO : apply transforms here
         if self.transform is not None:
             # augmented = self.transform(image=img, mask=mask)
             # img = augmented['image']
@@ -94,7 +94,7 @@ class Dataset(torch.utils.data.Dataset):
             img = self.transform(img)
             mask = self.transform(mask)
 
-        # TODO move this to transform group
+        # TODO : move this to transform group
         img = img.astype('float32') / 255
         img = img.transpose(2, 0, 1)
         mask = mask.astype('float32') / 255
